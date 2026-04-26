@@ -38,24 +38,35 @@ def fetch_portfolio():
     driver = get_driver()
     try:
         driver.get(URL)
+
+        # 等待 #asset 區塊裡的 table 出現（最多等 15 秒）
         wait = WebDriverWait(driver, 15)
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#asset table")))
+
+        # 找含有「股票代號」th 的 table
+        # 注意：table 有兩層 header，第一行是「股票」大標，第二行才是欄位名稱
+        # 需要找所有 th（包含所有 row）才能匹配到「股票代號」
         tables = driver.find_elements(By.CSS_SELECTOR, "#asset table")
         target_table = None
         for table in tables:
-            headers = [th.text.strip() for th in table.find_elements(By.TAG_NAME, "th")]
-            if "股票代號" in headers and "持股權重" in headers:
+            all_ths = [th.text.strip() for th in table.find_elements(By.TAG_NAME, "th")]
+            if "股票代號" in all_ths and "持股權重" in all_ths:
                 target_table = table
                 break
+
         if not target_table:
             raise ValueError("找不到股票持股 table，網站結構可能已變更")
+
+        # 解析資料（只取有 4 個 td 的資料列）
         rows = []
         for tr in target_table.find_elements(By.TAG_NAME, "tr"):
             cells = [td.text.strip() for td in tr.find_elements(By.TAG_NAME, "td")]
             if len(cells) == 4 and cells[0]:
                 rows.append(cells)
+
         print(f"  → 共找到 {len(rows)} 檔股票")
         return rows
+
     finally:
         driver.quit()
 
