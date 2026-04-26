@@ -20,17 +20,24 @@ OUTPUT_DIR = "data"
 
 def get_driver():
     options = Options()
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1280,800")
+    options.add_argument("--window-size=1280,900")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     )
-    return webdriver.Chrome(options=options)
+    driver = webdriver.Chrome(options=options)
+    driver.execute_script(
+        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
+    return driver
 
 
 def fetch_portfolio():
@@ -39,33 +46,41 @@ def fetch_portfolio():
     try:
         driver.get(URL)
 
-        # 等待 #asset 區塊裡的 table 出現（最多等 15 秒）
-        wait = WebDriverWait(driver, 15)
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#asset table")))
+        # 等待頁面 #asset 區塊出現（最多 20 秒）
+        wait = WebDriverWait(driver, 20)
+        wait.until(EC.presence_of_element_located((By.ID, "asset")))
 
-        # 找含有「股票代號」th 的 table
-        # 注意：table 有兩層 header，第一行是「股票」大標，第二行才是欄位名稱
-        # 需要找所有 th（包含所有 row）才能匹配到「股票代號」
-        tables = driver.find_elements(By.CSS_SELECTOR, "#asset table")
-        target_table = None
-        for table in tables:
-            all_ths = [th.text.strip() for th in table.find_elements(By.TAG_NAME, "th")]
-            if "股票代號" in all_ths and "持股權重" in all_ths:
-                target_table = table
-                break
+        # debug: 印出 #asset 裡的 table 數量和 th 內容
+        asset_el = driver.find_element(By.ID, "asset")
+        tables = asset_el.find_elements(By.TAG_NAME, "table")
+        print(f"  → #asset 裡找到 {len(tables)} 個 table")
+        for i, t in enumerate(tables):
+            ths = [th.text.strip() for th in t.find_elements(By.TAG_NAME, "th")]
+            print(f"    table[{i}] ths: {ths}")
 
-        if not target_table:
-            raise ValueError("找不到股票持股 table，網站結構可能已變更")
+        # 優先用 JavaScript 直接從 DOM 抓取（最可靠）
+        result = driver.execute_script("""
+            const tables = document.querySelectorAll('#asset table');
+            const rows = [];
+            tables.forEach(table => {
+                const allThs = Array.from(table.querySelectorAll('th'))
+                    .map(th => th.textContent.trim());
+                if (allThs.includes('股票代號') && allThs.includes('持股權重')) {
+                    table.querySelectorAll('tr').forEach(tr => {
+                        const cells = Array.from(tr.querySelectorAll('td'))
+                            .map(td => td.textContent.trim());
+                        if (cells.length === 4 && cells[0]) rows.push(cells);
+                    });
+                }
+            });
+            return rows;
+        """)
 
-        # 解析資料（只取有 4 個 td 的資料列）
-        rows = []
-        for tr in target_table.find_elements(By.TAG_NAME, "tr"):
-            cells = [td.text.strip() for td in tr.find_elements(By.TAG_NAME, "td")]
-            if len(cells) == 4 and cells[0]:
-                rows.append(cells)
+        if result:
+            print(f"  → JavaScript 找到 {len(result)} 檔股票")
+            return result
 
-        print(f"  → 共找到 {len(rows)} 檔股票")
-        return rows
+        raise ValueError("找不到股票持股資料，網站可能封鎖了 headless 瀏覽器")
 
     finally:
         driver.quit()
