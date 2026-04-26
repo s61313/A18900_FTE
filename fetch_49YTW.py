@@ -10,9 +10,11 @@ import os
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 URL = "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW"
 OUTPUT_DIR = "data"
@@ -20,24 +22,18 @@ OUTPUT_DIR = "data"
 
 def get_driver():
     options = Options()
-    options.add_argument("--headless=new")
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1280,900")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     )
-    driver = webdriver.Chrome(options=options)
-    driver.execute_script(
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    )
-    return driver
+    service = Service(ChromeDriverManager().install())
+    return webdriver.Chrome(service=service, options=options)
 
 
 def fetch_portfolio():
@@ -46,19 +42,11 @@ def fetch_portfolio():
     try:
         driver.get(URL)
 
-        # 等待頁面 #asset 區塊出現（最多 20 秒）
+        # 等待 #asset 區塊出現（最多 20 秒）
         wait = WebDriverWait(driver, 20)
         wait.until(EC.presence_of_element_located((By.ID, "asset")))
 
-        # debug: 印出 #asset 裡的 table 數量和 th 內容
-        asset_el = driver.find_element(By.ID, "asset")
-        tables = asset_el.find_elements(By.TAG_NAME, "table")
-        print(f"  → #asset 裡找到 {len(tables)} 個 table")
-        for i, t in enumerate(tables):
-            ths = [th.text.strip() for th in t.find_elements(By.TAG_NAME, "th")]
-            print(f"    table[{i}] ths: {ths}")
-
-        # 優先用 JavaScript 直接從 DOM 抓取（最可靠）
+        # 用 JavaScript 直接從 DOM 抓取（最可靠）
         result = driver.execute_script("""
             const tables = document.querySelectorAll('#asset table');
             const rows = [];
@@ -76,11 +64,14 @@ def fetch_portfolio():
             return rows;
         """)
 
-        if result:
-            print(f"  → JavaScript 找到 {len(result)} 檔股票")
-            return result
+        asset_tables = driver.find_elements(By.CSS_SELECTOR, "#asset table")
+        print(f"  → #asset table 數量: {len(asset_tables)}")
+        print(f"  → 找到 {len(result) if result else 0} 筆資料")
 
-        raise ValueError("找不到股票持股資料，網站可能封鎖了 headless 瀏覽器")
+        if not result:
+            raise ValueError("找不到股票持股資料，網站可能封鎖了 headless 瀏覽器")
+
+        return result
 
     finally:
         driver.quit()
