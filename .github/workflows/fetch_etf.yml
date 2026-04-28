@@ -32,11 +32,15 @@ jobs:
       - name: 分析持股變化
         run: python analyze_diff.py
 
+      - name: 產生 GitHub Pages 網頁
+        run: python generate_html.py
+
       - name: Commit & Push 資料與報告
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ || true
           git add reports/ || true
+          git add index.html || true
           git diff --cached --quiet || git commit -m "📊 $(date +'%Y-%m-%d') 49YTW 持股更新與變化報告"
           git push

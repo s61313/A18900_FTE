@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>49YTW 持股追蹤</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 24px 32px; }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em; }
+    header p { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
+    .badge { display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+    .cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px 22px; min-width: 140px; flex: 1; }
+    .card .label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .card .value { font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }
+    .card .value.pos { color: #4ade80; }
+    .card .value.neg { color: #f87171; }
+    .card .value.warn { color: #fbbf24; }
+    section { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+    section .sec-header { padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    section .sec-header h2 { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
+    section .sec-header .count { background: #334155; color: #94a3b8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead tr { background: #0f172a; }
+    th { padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    td { padding: 9px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }
+    tbody tr:hover { background: #263148; }
+    .code { font-family: monospace; color: #93c5fd; font-size: 0.85rem; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pos { color: #4ade80; font-weight: 600; }
+    .neg { color: #f87171; font-weight: 600; }
+    .weight-cell { min-width: 130px; }
+    .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .weight-bar { height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }
+    .weight-label { color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.82rem; }
+    .empty { color: #475569; padding: 16px 22px; font-style: italic; font-size: 0.85rem; }
+    footer { text-align: center; padding: 24px; color: #475569; font-size: 0.78rem; }
+    @media (max-width: 600px) {
+      .cards { gap: 10px; }
+      .card .value { font-size: 1.4rem; }
+      th, td { padding: 7px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>49YTW 持股追蹤 <span class="badge">自動更新</span></h1>
+    <p>資料日期：2026/04/28 &nbsp;·&nbsp; 產生時間：2026-04-28 04:37:37</p>
+  </header>
+  <main>
+    <div class="cards">
+      <div class="card"><div class="label">持股總數</div><div class="value">51 <span style="font-size:1rem;color:#64748b">檔</span></div></div>
+      <div class="card"><div class="label">新增</div><div class="value pos">0</div></div>
+      <div class="card"><div class="label">刪除</div><div class="value neg">0</div></div>
+      <div class="card"><div class="label">異動</div><div class="value warn">50</div></div>
+      <div class="card"><div class="label">比較區間</div><div class="value" style="font-size:0.9rem;padding-top:4px">2026/04/27<br>→ 2026/04/28</div></div>
+    </div>
+
+    <section>
+      <div class="sec-header"><h2>📋 今日持股</h2><span class="count">51 檔</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>代號</th><th>名稱</th><th>股數</th><th>持股權重</th></tr></thead>
+          <tbody>
+        <tr>
+          <td class="code">2330</td>
+          <td>台積電</td>
+          <td class="num">9,693,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:75%"></div>
+              <span class="weight-label">9.46%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2383</td>
+          <td>台光電</td>
+          <td class="num">4,425,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:72%"></div>
+              <span class="weight-label">9.02%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2345</td>
+          <td>智邦</td>
+          <td class="num">6,031,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:45%"></div>
+              <span class="weight-label">5.65%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2308</td>
+          <td>台達電</td>
+          <td class="num">6,024,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:41%"></div>
+              <span class="weight-label">5.24%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2368</td>
+          <td>金像電</td>
+          <td class="num">8,240,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:40%"></div>
+              <span class="weight-label">5.04%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">8046</td>
+          <td>南電</td>
+          <td class="num">12,637,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:39%"></div>
+              <span class="weight-label">4.97%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3665</td>
+          <td>貿聯-KY</td>
+          <td class="num">4,377,848</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:39%"></div>
+              <span class="weight-label">4.96%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3653</td>
+          <td>健策</td>
+          <td class="num">2,267,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:38%"></div>
+              <span class="weight-label">4.84%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3017</td>
+          <td>奇鋐</td>
+          <td class="num">3,902,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:38%"></div>
+              <span class="weight-label">4.77%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2454</td>
+          <td>聯發科</td>
+          <td class="num">4,147,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:34%"></div>
+              <span class="weight-label">4.35%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6223</td>
+          <td>旺矽</td>
+          <td class="num">1,886,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:31%"></div>
+              <span class="weight-label">3.96%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3037</td>
+          <td>欣興</td>
+          <td class="num">9,287,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:26%"></div>
+              <span class="weight-label">3.36%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6669</td>
+          <td>緯穎</td>
+          <td class="num">1,549,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:26%"></div>
+              <span class="weight-label">3.26%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">5274</td>
+          <td>信驊</td>
+          <td class="num">373,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:20%"></div>
+              <span class="weight-label">2.57%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2327</td>
+          <td>國巨*</td>
+          <td class="num">15,196,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:16%"></div>
+              <span class="weight-label">2%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6805</td>
+          <td>富世達</td>
+          <td class="num">2,099,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:14%"></div>
+              <span class="weight-label">1.87%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3711</td>
+          <td>日月光投控</td>
+          <td class="num">8,174,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:13%"></div>
+              <span class="weight-label">1.74%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6515</td>
+          <td>穎崴</td>
+          <td class="num">391,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:12%"></div>
+              <span class="weight-label">1.61%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6510</td>
+          <td>精測</td>
+          <td class="num">930,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:11%"></div>
+              <span class="weight-label">1.43%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2449</td>
+          <td>京元電子</td>
+          <td class="num">11,172,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:10%"></div>
+              <span class="weight-label">1.36%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3661</td>
+          <td>世芯-KY</td>
+          <td class="num">738,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:10%"></div>
+              <span class="weight-label">1.32%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6274</td>
+          <td>台燿</td>
+          <td class="num">3,019,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:10%"></div>
+              <span class="weight-label">1.29%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3189</td>
+          <td>景碩</td>
+          <td class="num">5,358,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:9%"></div>
+              <span class="weight-label">1.19%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2317</td>
+          <td>鴻海</td>
+          <td class="num">10,727,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:8%"></div>
+              <span class="weight-label">1.05%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2303</td>
+          <td>聯電</td>
+          <td class="num">32,791,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:8%"></div>
+              <span class="weight-label">1.03%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">8358</td>
+          <td>金居</td>
+          <td class="num">5,558,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:6%"></div>
+              <span class="weight-label">0.8%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">8210</td>
+          <td>勤誠</td>
+          <td class="num">1,117,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:4%"></div>
+              <span class="weight-label">0.56%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">5439</td>
+          <td>高技</td>
+          <td class="num">3,130,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:4%"></div>
+              <span class="weight-label">0.5%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3443</td>
+          <td>創意</td>
+          <td class="num">271,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:3%"></div>
+              <span class="weight-label">0.46%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2404</td>
+          <td>漢唐</td>
+          <td class="num">1,091,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:3%"></div>
+              <span class="weight-label">0.46%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6147</td>
+          <td>頎邦</td>
+          <td class="num">7,884,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:3%"></div>
+              <span class="weight-label">0.44%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3264</td>
+          <td>欣銓</td>
+          <td class="num">4,897,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:3%"></div>
+              <span class="weight-label">0.41%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">8996</td>
+          <td>高力</td>
+          <td class="num">535,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:2%"></div>
+              <span class="weight-label">0.25%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">7769</td>
+          <td>鴻勁</td>
+          <td class="num">98,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:1%"></div>
+              <span class="weight-label">0.21%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6191</td>
+          <td>精成科</td>
+          <td class="num">3,986,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:1%"></div>
+              <span class="weight-label">0.18%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2481</td>
+          <td>強茂</td>
+          <td class="num">3,652,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:1%"></div>
+              <span class="weight-label">0.16%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3376</td>
+          <td>新日興</td>
+          <td class="num">1,681,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:1%"></div>
+              <span class="weight-label">0.15%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6415</td>
+          <td>矽力*-KY</td>
+          <td class="num">660,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.12%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">4966</td>
+          <td>譜瑞-KY</td>
+          <td class="num">371,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.1%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">6488</td>
+          <td>環球晶</td>
+          <td class="num">333,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.09%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2313</td>
+          <td>華通</td>
+          <td class="num">843,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.09%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3211</td>
+          <td>順達</td>
+          <td class="num">458,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.08%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">3217</td>
+          <td>優群</td>
+          <td class="num">830,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.06%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">1303</td>
+          <td>南亞</td>
+          <td class="num">1,374,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.05%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2002</td>
+          <td>中鋼</td>
+          <td class="num">5,161,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.04%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">1319</td>
+          <td>東陽</td>
+          <td class="num">509,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0.02%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2357</td>
+          <td>華碩</td>
+          <td class="num">16,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">1815</td>
+          <td>富喬</td>
+          <td class="num">107,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">2439</td>
+          <td>美律</td>
+          <td class="num">16,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">4979</td>
+          <td>華星光</td>
+          <td class="num">1,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0%</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="code">5347</td>
+          <td>世界</td>
+          <td class="num">62,000</td>
+          <td class="weight-cell">
+            <div class="weight-bar-wrap">
+              <div class="weight-bar" style="width:0%"></div>
+              <span class="weight-label">0%</span>
+            </div>
+          </td>
+        </tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-header"><h2>🟢 新增股票</h2><span class="count">0 檔</span></div>
+      <div class="table-wrap"><p class='empty'>無新增股票</p></div>
+    </section>
+
+    <section>
+      <div class="sec-header"><h2>🔴 刪除股票</h2><span class="count">0 檔</span></div>
+      <div class="table-wrap"><p class='empty'>無刪除股票</p></div>
+    </section>
+
+    <section>
+      <div class="sec-header"><h2>🔄 持股異動</h2><span class="count">50 檔</span></div>
+      <div class="table-wrap"><table><thead><tr><th>代號</th><th>名稱</th><th>前日股數</th><th>今日股數</th><th>股數變化</th><th>前日權重</th><th>今日權重</th><th>權重變化</th></tr></thead><tbody><tr><td class='code'>|----------|----------|----------|----------|----------|----------|----------|----------|</td><td>3653 | 健策</td><td class='num'>2,267,000</td><td class='num'>2,267,000</td><td class='num '>0</td><td>5.74%</td><td>4.84%</td><td class='neg'>-0.9%</td></tr><tr><td class='code'>6669</td><td>緯穎</td><td class='num'>1,101,000</td><td class='num'>1,549,000</td><td class='num pos'>+448000</td><td>2.41%</td><td>3.26%</td><td class='pos'>+0.85%</td></tr><tr><td class='code'>2308</td><td>台達電</td><td class='num'>6,024,000</td><td class='num'>6,024,000</td><td class='num '>0</td><td>5.89%</td><td>5.24%</td><td class='neg'>-0.65%</td></tr><tr><td class='code'>3017</td><td>奇鋐</td><td class='num'>3,902,000</td><td class='num'>3,902,000</td><td class='num '>0</td><td>5.42%</td><td>4.77%</td><td class='neg'>-0.65%</td></tr><tr><td class='code'>3665</td><td>貿聯-KY</td><td class='num'>4,097,848</td><td class='num'>4,377,848</td><td class='num pos'>+280000</td><td>5.34%</td><td>4.96%</td><td class='neg'>-0.38%</td></tr><tr><td class='code'>2345</td><td>智邦</td><td class='num'>5,231,000</td><td class='num'>6,031,000</td><td class='num pos'>+800000</td><td>5.28%</td><td>5.65%</td><td class='pos'>+0.37%</td></tr><tr><td class='code'>6805</td><td>富世達</td><td class='num'>1,698,000</td><td class='num'>2,099,000</td><td class='num pos'>+401000</td><td>1.53%</td><td>1.87%</td><td class='pos'>+0.34%</td></tr><tr><td class='code'>2317</td><td>鴻海</td><td class='num'>6,927,000</td><td class='num'>10,727,000</td><td class='num pos'>+3800000</td><td>0.72%</td><td>1.05%</td><td class='pos'>+0.33%</td></tr><tr><td class='code'>2383</td><td>台光電</td><td class='num'>4,125,000</td><td class='num'>4,425,000</td><td class='num pos'>+300000</td><td>8.7%</td><td>9.02%</td><td class='pos'>+0.32%</td></tr><tr><td class='code'>6274</td><td>台燿</td><td class='num'>3,019,000</td><td class='num'>3,019,000</td><td class='num '>0</td><td>1.49%</td><td>1.29%</td><td class='neg'>-0.2%</td></tr><tr><td class='code'>5274</td><td>信驊</td><td class='num'>351,000</td><td class='num'>373,000</td><td class='num pos'>+22000</td><td>2.71%</td><td>2.57%</td><td class='neg'>-0.14%</td></tr><tr><td class='code'>6515</td><td>穎崴</td><td class='num'>368,000</td><td class='num'>391,000</td><td class='num pos'>+23000</td><td>1.75%</td><td>1.61%</td><td class='neg'>-0.14%</td></tr><tr><td class='code'>8358</td><td>金居</td><td class='num'>5,558,000</td><td class='num'>5,558,000</td><td class='num '>0</td><td>0.94%</td><td>0.8%</td><td class='neg'>-0.14%</td></tr><tr><td class='code'>3037</td><td>欣興</td><td class='num'>9,287,000</td><td class='num'>9,287,000</td><td class='num '>0</td><td>3.46%</td><td>3.36%</td><td class='neg'>-0.1%</td></tr><tr><td class='code'>6147</td><td>頎邦</td><td class='num'>7,884,000</td><td class='num'>7,884,000</td><td class='num '>0</td><td>0.54%</td><td>0.44%</td><td class='neg'>-0.1%</td></tr><tr><td class='code'>2454</td><td>聯發科</td><td class='num'>3,867,000</td><td class='num'>4,147,000</td><td class='num pos'>+280000</td><td>4.44%</td><td>4.35%</td><td class='neg'>-0.09%</td></tr><tr><td class='code'>3211</td><td>順達</td><td class='num'>916,000</td><td class='num'>458,000</td><td class='num neg'>-458000</td><td>0.16%</td><td>0.08%</td><td class='neg'>-0.08%</td></tr><tr><td class='code'>2330</td><td>台積電</td><td class='num'>9,114,000</td><td class='num'>9,693,000</td><td class='num pos'>+579000</td><td>9.39%</td><td>9.46%</td><td class='pos'>+0.07%</td></tr><tr><td class='code'>3264</td><td>欣銓</td><td class='num'>4,896,000</td><td class='num'>4,897,000</td><td class='num pos'>+1000</td><td>0.48%</td><td>0.41%</td><td class='neg'>-0.07%</td></tr><tr><td class='code'>6223</td><td>旺矽</td><td class='num'>1,774,000</td><td class='num'>1,886,000</td><td class='num pos'>+112000</td><td>3.89%</td><td>3.96%</td><td class='pos'>+0.07%</td></tr><tr><td class='code'>6510</td><td>精測</td><td class='num'>875,000</td><td class='num'>930,000</td><td class='num pos'>+55000</td><td>1.5%</td><td>1.43%</td><td class='neg'>-0.07%</td></tr><tr><td class='code'>8046</td><td>南電</td><td class='num'>11,881,000</td><td class='num'>12,637,000</td><td class='num pos'>+756000</td><td>4.9%</td><td>4.97%</td><td class='pos'>+0.07%</td></tr><tr><td class='code'>2449</td><td>京元電子</td><td class='num'>10,503,000</td><td class='num'>11,172,000</td><td class='num pos'>+669000</td><td>1.42%</td><td>1.36%</td><td class='neg'>-0.06%</td></tr><tr><td class='code'>3189</td><td>景碩</td><td class='num'>5,038,000</td><td class='num'>5,358,000</td><td class='num pos'>+320000</td><td>1.25%</td><td>1.19%</td><td class='neg'>-0.06%</td></tr><tr><td class='code'>3443</td><td>創意</td><td class='num'>271,000</td><td class='num'>271,000</td><td class='num '>0</td><td>0.52%</td><td>0.46%</td><td class='neg'>-0.06%</td></tr><tr><td class='code'>3661</td><td>世芯-KY</td><td class='num'>694,000</td><td class='num'>738,000</td><td class='num pos'>+44000</td><td>1.38%</td><td>1.32%</td><td class='neg'>-0.06%</td></tr><tr><td class='code'>2303</td><td>聯電</td><td class='num'>30,837,000</td><td class='num'>32,791,000</td><td class='num pos'>+1954000</td><td>1.08%</td><td>1.03%</td><td class='neg'>-0.05%</td></tr><tr><td class='code'>2404</td><td>漢唐</td><td class='num'>1,091,000</td><td class='num'>1,091,000</td><td class='num '>0</td><td>0.51%</td><td>0.46%</td><td class='neg'>-0.05%</td></tr><tr><td class='code'>3711</td><td>日月光投控</td><td class='num'>7,654,000</td><td class='num'>8,174,000</td><td class='num pos'>+520000</td><td>1.79%</td><td>1.74%</td><td class='neg'>-0.05%</td></tr><tr><td class='code'>2368</td><td>金像電</td><td class='num'>7,748,000</td><td class='num'>8,240,000</td><td class='num pos'>+492000</td><td>5.08%</td><td>5.04%</td><td class='neg'>-0.04%</td></tr><tr><td class='code'>8210</td><td>勤誠</td><td class='num'>1,051,000</td><td class='num'>1,117,000</td><td class='num pos'>+66000</td><td>0.6%</td><td>0.56%</td><td class='neg'>-0.04%</td></tr><tr><td class='code'>8996</td><td>高力</td><td class='num'>535,000</td><td class='num'>535,000</td><td class='num '>0</td><td>0.28%</td><td>0.25%</td><td class='neg'>-0.03%</td></tr><tr><td class='code'>6191</td><td>精成科</td><td class='num'>3,985,000</td><td class='num'>3,986,000</td><td class='num pos'>+1000</td><td>0.2%</td><td>0.18%</td><td class='neg'>-0.02%</td></tr><tr><td class='code'>6415</td><td>矽力*-KY</td><td class='num'>660,000</td><td class='num'>660,000</td><td class='num '>0</td><td>0.14%</td><td>0.12%</td><td class='neg'>-0.02%</td></tr><tr><td class='code'>1303</td><td>南亞</td><td class='num'>1,373,000</td><td class='num'>1,374,000</td><td class='num pos'>+1000</td><td>0.06%</td><td>0.05%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>1815</td><td>富喬</td><td class='num'>107,000</td><td class='num'>107,000</td><td class='num '>0</td><td>0.01%</td><td>0.0%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>2002</td><td>中鋼</td><td class='num'>5,160,000</td><td class='num'>5,161,000</td><td class='num pos'>+1000</td><td>0.05%</td><td>0.04%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>2313</td><td>華通</td><td class='num'>764,000</td><td class='num'>843,000</td><td class='num pos'>+79000</td><td>0.08%</td><td>0.09%</td><td class='pos'>+0.01%</td></tr><tr><td class='code'>2481</td><td>強茂</td><td class='num'>3,651,000</td><td class='num'>3,652,000</td><td class='num pos'>+1000</td><td>0.17%</td><td>0.16%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>3217</td><td>優群</td><td class='num'>780,000</td><td class='num'>830,000</td><td class='num pos'>+50000</td><td>0.07%</td><td>0.06%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>3376</td><td>新日興</td><td class='num'>1,561,000</td><td class='num'>1,681,000</td><td class='num pos'>+120000</td><td>0.16%</td><td>0.15%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>4966</td><td>譜瑞-KY</td><td class='num'>370,000</td><td class='num'>371,000</td><td class='num pos'>+1000</td><td>0.11%</td><td>0.1%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>7769</td><td>鴻勁</td><td class='num'>97,000</td><td class='num'>98,000</td><td class='num pos'>+1000</td><td>0.22%</td><td>0.21%</td><td class='neg'>-0.01%</td></tr><tr><td class='code'>1319</td><td>東陽</td><td class='num'>508,000</td><td class='num'>509,000</td><td class='num pos'>+1000</td><td>0.02%</td><td>0.02%</td><td class=''>0.0%</td></tr><tr><td class='code'>2327</td><td>國巨*</td><td class='num'>14,288,000</td><td class='num'>15,196,000</td><td class='num pos'>+908000</td><td>2.0%</td><td>2.0%</td><td class=''>0.0%</td></tr><tr><td class='code'>2357</td><td>華碩</td><td class='num'>15,000</td><td class='num'>16,000</td><td class='num pos'>+1000</td><td>0.0%</td><td>0.0%</td><td class=''>0.0%</td></tr><tr><td class='code'>2439</td><td>美律</td><td class='num'>15,000</td><td class='num'>16,000</td><td class='num pos'>+1000</td><td>0.0%</td><td>0.0%</td><td class=''>0.0%</td></tr><tr><td class='code'>5347</td><td>世界</td><td class='num'>61,000</td><td class='num'>62,000</td><td class='num pos'>+1000</td><td>0.0%</td><td>0.0%</td><td class=''>0.0%</td></tr><tr><td class='code'>5439</td><td>高技</td><td class='num'>2,880,000</td><td class='num'>3,130,000</td><td class='num pos'>+250000</td><td>0.5%</td><td>0.5%</td><td class=''>0.0%</td></tr><tr><td class='code'>6488</td><td>環球晶</td><td class='num'>332,000</td><td class='num'>333,000</td><td class='num pos'>+1000</td><td>0.09%</td><td>0.09%</td><td class=''>0.0%</td></tr></tbody></table></div>
+    </section>
+  </main>
+  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新</footer>
+</body>
+</html>
