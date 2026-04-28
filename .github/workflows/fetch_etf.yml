@@ -2,7 +2,7 @@ name: 每日抓取 49YTW 基金投資組合
 
 on:
   schedule:
-    - cron: "0 1 * * 1-5"
+    - cron: "0 10 * * 1-5"
   workflow_dispatch:
 
 jobs:
