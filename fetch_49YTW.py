@@ -7,6 +7,7 @@
 
 import csv
 import os
+import time
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -98,8 +99,22 @@ def update_latest(rows):
     print(f"  → 已更新最新版：{filename}")
 
 
+MAX_RETRIES = 3
+
+
 if __name__ == "__main__":
-    rows = fetch_portfolio()
+    last_err = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            rows = fetch_portfolio()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt == MAX_RETRIES:
+                raise
+            wait = attempt * 10
+            print(f"[嘗試 {attempt}/{MAX_RETRIES}] 失敗：{e}，{wait} 秒後重試...")
+            time.sleep(wait)
     save_csv(rows)
     update_latest(rows)
     print("完成！")

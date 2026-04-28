@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-import csv, os, glob
+import csv, json, os, glob
 from datetime import datetime
+
+ALERT_WEIGHT_THRESHOLD = 1.0  # 單檔權重變化超過此值（%）視為重大異動
 
 DATA_DIR = "data"
 REPORT_DIR = "reports"
@@ -76,6 +78,28 @@ def generate_report(today_data, prev_data, today_date, prev_date, added, removed
         lines.append("_持股無異動_")
     return "\n".join(lines)
 
+def check_alert(added, removed, changed):
+    if added or removed:
+        return True
+    return any(abs(r["權重變化"]) >= ALERT_WEIGHT_THRESHOLD for r in changed)
+
+
+def write_alert(today_date, added, removed, changed):
+    alert = {
+        "date": today_date,
+        "added_count": len(added),
+        "removed_count": len(removed),
+        "top_changes": [
+            {"代號": r["代號"], "名稱": r["名稱"], "權重變化": r["權重變化"]}
+            for r in changed[:5]
+        ],
+    }
+    path = os.path.join(REPORT_DIR, "alert.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(alert, f, ensure_ascii=False, indent=2)
+    print(f"⚠️  重大異動，已寫入 {path}")
+
+
 def main():
     files = find_sorted_files()
     if len(files) < 2:
@@ -95,6 +119,12 @@ def main():
         f.write(report)
     print(f"報告已儲存：{report_path}")
     print(f"新增：{len(added)} 檔　刪除：{len(removed)} 檔　異動：{len(changed)} 檔")
+
+    alert_path = os.path.join(REPORT_DIR, "alert.json")
+    if check_alert(added, removed, changed):
+        write_alert(today_date, added, removed, changed)
+    elif os.path.exists(alert_path):
+        os.remove(alert_path)
 
 if __name__ == "__main__":
     main()

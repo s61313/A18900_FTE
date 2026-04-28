@@ -40,3 +40,23 @@ jobs:
           git add reports/ || true
           git diff --cached --quiet || git commit -m "📊 $(date +'%Y-%m-%d') 49YTW 持股更新與變化報告"
           git push
+
+      - name: 建立 GitHub Issue（重大持股異動）
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f reports/alert.json ]; then
+            TITLE="⚠️ 49YTW 重大持股異動 $(date +'%Y-%m-%d')"
+            gh issue create \
+              --title "$TITLE" \
+              --body-file reports/latest_diff.md \
+              --label "alert" 2>/dev/null \
+            || gh issue create \
+              --title "$TITLE" \
+              --body-file reports/latest_diff.md \
+            || true
+            echo "GitHub Issue 已建立"
+          else
+            echo "無重大異動，略過 Issue 通知"
+          fi
