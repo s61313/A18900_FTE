@@ -76,6 +76,17 @@ def generate_report(today_data, prev_data, today_date, prev_date, added, removed
             lines.append(f"| {r['代號']} | {r['名稱']} | {fmt(r['前日股數'])} | {fmt(r['今日股數'])} | {sign(r['股數變化'])} | {r['前日權重']}% | {r['今日權重']}% | {sign(r['權重變化'])}% |")
     else:
         lines.append("_持股無異動_")
+    lines += [
+        "",
+        "---",
+        "## 📈 持股視覺化",
+        "",
+        "### Top 10 持股權重趨勢",
+        "![Top 10 持股權重趨勢](top10_trend.png)",
+        "",
+        "### 當日持股分佈 Top 20",
+        f"![當日持股分佈](latest_bar.png)",
+    ]
     return "\n".join(lines)
 
 def check_alert(added, removed, changed):

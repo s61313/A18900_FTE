@@ -23,14 +23,22 @@ jobs:
       - name: 安裝 Chrome
         uses: browser-actions/setup-chrome@v1
 
+      - name: 安裝中文字型
+        run: |
+          sudo apt-get install -y fonts-noto-cjk
+          python -c "import matplotlib.font_manager; matplotlib.font_manager._load_fontmanager(try_read_cache=False)"
+
       - name: 安裝套件
-        run: pip install selenium webdriver-manager
+        run: pip install selenium webdriver-manager matplotlib
 
       - name: 抓取今日持股資料
         run: python fetch_49YTW.py
 
       - name: 分析持股變化
         run: python analyze_diff.py
+
+      - name: 產生持股趨勢圖表
+        run: python generate_charts.py
 
       - name: Commit & Push 資料與報告
         run: |
