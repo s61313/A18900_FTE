@@ -113,7 +113,6 @@
     <div class="card"><div class="label">持股總數</div><div class="value" id="c-total">—</div></div>
     <div class="card"><div class="label">新增</div><div class="value pos" id="c-add">—</div></div>
     <div class="card"><div class="label">刪除</div><div class="value neg" id="c-del">—</div></div>
-    <div class="card"><div class="label">異動</div><div class="value warn" id="c-chg">—</div></div>
     <div class="card"><div class="label">比較區間</div><div class="value" id="c-range" style="font-size:0.85rem;line-height:1.4">—</div></div>
   </div>
 
@@ -141,9 +140,9 @@
             <th data-col="1">名稱<i class="si">▲</i></th>
             <th data-col="2" class="num">今日張數<i class="si">▲</i></th>
             <th data-col="3">持股權重<i class="si">▲</i></th>
-            <th data-col="4" class="num" id="th-chg">張數變化<i class="si">▲</i></th>
+            <th data-col="4" class="num" id="th-chg"><span>張數變化</span><i class="si">▲</i></th>
             <th data-col="5" class="num" id="th-pw">前日權重<i class="si">▲</i></th>
-            <th data-col="6" id="th-wc">權重變化<i class="si">▲</i></th>
+            <th data-col="6" id="th-wc"><span>權重變化</span><i class="si">▲</i></th>
           </tr>
         </thead>
         <tbody id="main-tbody"></tbody>
@@ -276,12 +275,9 @@
 
   function renderTable(cmp, streaks, isMulti) {
     // 欄位可見性
-    document.getElementById('th-chg').textContent = isMulti ? '累計張數變化' : '張數變化';
-    document.getElementById('th-chg').appendChild((() => { const i=document.createElement('i'); i.className='si'; i.textContent='▲'; return i; })());
-    const thPw = document.getElementById('th-pw');
-    const thWc = document.getElementById('th-wc');
-    thPw.classList.toggle('hidden', isMulti);
-    thWc.classList.toggle('hidden', isMulti);
+    document.getElementById('th-chg').querySelector('span').textContent = isMulti ? '累計張數變化' : '張數變化';
+    document.getElementById('th-pw').classList.toggle('hidden', isMulti);
+    document.getElementById('th-wc').querySelector('span').textContent = isMulti ? '累計權重變化' : '權重變化';
 
     // 組合所有行：added + rows（含 changed 與 unchanged）
     const lastDay = HISTORY[DATES[DATES.length-1]] || {};
@@ -329,9 +325,9 @@
         chgCell = `<td class="num ${cls(zdiff)}" data-sort="${zdiff}">${zdiffTxt}${stkTag}</td>`;
       }
 
-      // 前日權重 & 權重變化（單日模式才顯示）
+      // 前日權重（單日才顯示）& 權重變化/累計權重變化（兩模式皆顯示）
       const pwCell = `<td class="num ${isMulti?'hidden':''}" data-sort="${row.prevWeight??0}">${row.isAdded ? '—' : fmtW(row.prevWeight)}</td>`;
-      const wcCell = `<td class="${isMulti?'hidden':''} ${row.isAdded?'':cls(row.weightDiff)}" data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : fmtWDiff(row.weightDiff)}</td>`;
+      const wcCell = `<td class="${row.isAdded?'':cls(row.weightDiff)}" data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : fmtWDiff(row.weightDiff)}</td>`;
 
       return `<tr>
         <td class="code" data-sort="${row.code}">${row.code}</td>
@@ -412,11 +408,9 @@
 
     // cards
     const total = cmp.rows.length + cmp.added.length;
-    const changed = cmp.rows.filter(r => r.changed).length;
     document.getElementById('c-total').textContent = total;
     document.getElementById('c-add').textContent   = cmp.added.length;
     document.getElementById('c-del').textContent   = cmp.removed.length;
-    document.getElementById('c-chg').textContent   = changed;
     document.getElementById('c-range').textContent = dateLabel(sd) + ' → ' + dateLabel(ed);
 
     renderTable(cmp, streaks, isMulti);
