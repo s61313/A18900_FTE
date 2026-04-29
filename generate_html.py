@@ -30,6 +30,41 @@ def parse_date_label(date_str):
     return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}"
 
 
+def split_sections(content):
+    """Split markdown into sections by ## heading, return dict {heading_text: body_text}."""
+    parts = re.split(r"(?m)^## ", content)
+    result = {}
+    for part in parts[1:]:
+        lines = part.split("\n", 1)
+        heading = lines[0].strip()
+        body = lines[1] if len(lines) > 1 else ""
+        result[heading] = body
+    return result
+
+
+def parse_table_rows(text, num_cols):
+    """Parse markdown table rows (skip header and separator lines), return list of cell lists."""
+    rows = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) < num_cols:
+            continue
+        # Skip separator lines (cells are all dashes)
+        if all(re.fullmatch(r"-+", c) for c in cells if c):
+            continue
+        # Skip header lines (first cell is Chinese header like 股票代號)
+        if re.search(r"[一-鿿]", cells[0]):
+            continue
+        # Skip if first cell doesn't look like a stock code (digits only)
+        if not re.fullmatch(r"\d+", cells[0]):
+            continue
+        rows.append(cells)
+    return rows
+
+
 def load_latest_diff_md():
     path = os.path.join(REPORT_DIR, "latest_diff.md")
     if not os.path.exists(path):
@@ -43,75 +78,102 @@ def load_latest_diff_md():
     today_date = date_match.group(2) if date_match else ""
     gen_time = time_match.group(1).strip() if time_match else ""
 
+    sections = split_sections(content)
+
     added_rows = []
-    added_block = re.search(r"新增股票.*?\n\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
-    if added_block:
-        for m in re.finditer(r"\|\s*(\S+)\s*\|\s*(.+?)\s*\|\s*([\d,]+)\s*\|\s*([\d.]+%)\s*\|", added_block.group(1)):
-            added_rows.append({"code": m.group(1), "name": m.group(2).strip(), "shares": m.group(3), "weight": m.group(4)})
+    for heading, body in sections.items():
+        if "新增股票" in heading:
+            for cells in parse_table_rows(body, 4):
+                added_rows.append({"code": cells[0], "name": cells[1], "shares": cells[2], "weight": cells[3]})
 
     removed_rows = []
-    removed_block = re.search(r"刪除股票.*?\n\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
-    if removed_block:
-        for m in re.finditer(r"\|\s*(\S+)\s*\|\s*(.+?)\s*\|\s*([\d,]+)\s*\|\s*([\d.]+%)\s*\|", removed_block.group(1)):
-            removed_rows.append({"code": m.group(1), "name": m.group(2).strip(), "shares": m.group(3), "weight": m.group(4)})
+    for heading, body in sections.items():
+        if "刪除股票" in heading:
+            for cells in parse_table_rows(body, 4):
+                removed_rows.append({"code": cells[0], "name": cells[1], "shares": cells[2], "weight": cells[3]})
 
     changed_rows = []
-    changed_block = re.search(r"持股異動.*?\n\n(.*?)(?=\Z)", content, re.DOTALL)
-    if changed_block:
-        for m in re.finditer(
-            r"\|\s*(\S+)\s*\|\s*(.+?)\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|\s*([+\-\d,]+)\s*\|\s*([\d.]+%)\s*\|\s*([\d.]+%)\s*\|\s*([+\-\d.]+%)\s*\|",
-            changed_block.group(1)
-        ):
-            wc_str = m.group(8).replace("%", "").strip()
-            try:
-                wc = float(wc_str)
-            except ValueError:
-                wc = 0.0
-            changed_rows.append({
-                "code": m.group(1),
-                "name": m.group(2).strip(),
-                "prev_shares": m.group(3),
-                "today_shares": m.group(4),
-                "shares_diff": m.group(5),
-                "prev_weight": m.group(6),
-                "today_weight": m.group(7),
-                "weight_change": m.group(8),
-                "wc_val": wc,
-            })
+    for heading, body in sections.items():
+        if "持股異動" in heading:
+            for cells in parse_table_rows(body, 8):
+                wc_str = cells[7].replace("%", "").strip()
+                try:
+                    wc = float(wc_str)
+                except ValueError:
+                    wc = 0.0
+                changed_rows.append({
+                    "code": cells[0],
+                    "name": cells[1],
+                    "prev_shares": cells[2],
+                    "today_shares": cells[3],
+                    "shares_diff": cells[4],
+                    "prev_weight": cells[5],
+                    "today_weight": cells[6],
+                    "weight_change": cells[7],
+                    "wc_val": wc,
+                })
 
     return prev_date, today_date, gen_time, added_rows, removed_rows, changed_rows
 
 
 def to_num(s):
-    """Parse a possibly-formatted number string to float for data-sort."""
     try:
-        return float(s.replace(",", "").replace("%", "").replace("+", ""))
+        return float(str(s).replace(",", "").replace("%", "").replace("+", ""))
     except (ValueError, AttributeError):
         return 0.0
+
+
+def to_zhang(shares_str):
+    """Convert share count string to 張 (÷1000)."""
+    try:
+        n = int(str(shares_str).replace(",", ""))
+        return f"{n // 1000:,}"
+    except (ValueError, AttributeError):
+        return shares_str
+
+
+def to_zhang_diff(diff_str):
+    """Convert share diff string like +448000 or -458000 to 張."""
+    s = str(diff_str).strip()
+    if s in ("0", "—", ""):
+        return "—"
+    sign = ""
+    num = s
+    if s.startswith("+"):
+        sign, num = "+", s[1:]
+    elif s.startswith("-"):
+        sign, num = "-", s[1:]
+    try:
+        n = int(num.replace(",", ""))
+        zhang = n // 1000
+        if zhang == 0:
+            return "—"
+        return f"{sign}{zhang:,}"
+    except ValueError:
+        return s
 
 
 def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_rows, changed_rows):
     date_label = today_date or parse_date_label(datetime.now().strftime("%Y%m%d"))
     total = len(portfolio)
 
-    # Build change lookup by code
     changed_by_code = {r["code"]: r for r in changed_rows}
-    # Codes that are newly added
     added_codes = {r["code"] for r in added_rows}
 
-    # Merge portfolio + change data
     merged_rows = ""
     for row in portfolio:
         code = row["code"]
         chg = changed_by_code.get(code)
         w = to_num(row["weight"])
         bar_width = min(int(w * 8), 100)
+        zhang = to_zhang(row["shares"])
+        shares_num = to_num(row["shares"])
 
-        # shares diff cell
         if chg:
             sd_raw = to_num(chg["shares_diff"])
             sd_cls = "pos" if sd_raw > 0 else ("neg" if sd_raw < 0 else "zero")
-            shares_diff_cell = f'<td class="num {sd_cls}" data-sort="{sd_raw}">{chg["shares_diff"]}</td>'
+            sd_zhang = to_zhang_diff(chg["shares_diff"])
+            shares_diff_cell = f'<td class="num {sd_cls}" data-sort="{sd_raw}">{sd_zhang}</td>'
             prev_w_raw = to_num(chg["prev_weight"])
             prev_weight_cell = f'<td class="num" data-sort="{prev_w_raw}">{chg["prev_weight"]}</td>'
             wc_raw = chg["wc_val"]
@@ -123,14 +185,14 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
             weight_change_cell = '<td class="pos" data-sort="999999">新增</td>'
         else:
             shares_diff_cell = '<td class="zero" data-sort="0">—</td>'
-            prev_weight_cell = f'<td class="num" data-sort="{to_num(row["weight"])}">{row["weight"]}</td>'
-            weight_change_cell = '<td class="zero" data-sort="0">0%</td>'
+            prev_weight_cell = f'<td class="num" data-sort="{w}">{row["weight"]}</td>'
+            weight_change_cell = '<td class="zero" data-sort="0">—</td>'
 
         merged_rows += f"""
         <tr>
           <td class="code" data-sort="{code}">{code}</td>
           <td data-sort="{row['name']}">{row['name']}</td>
-          <td class="num" data-sort="{to_num(row['shares'])}">{row['shares']}</td>
+          <td class="num" data-sort="{shares_num}">{zhang}</td>
           <td class="weight-cell" data-sort="{w}">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:{bar_width}%"></div>
@@ -145,9 +207,10 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
     def removed_table(rows):
         if not rows:
             return "<p class='empty'>無刪除股票</p>"
-        s = "<table><thead><tr><th>代號</th><th>名稱</th><th>原股數</th><th>原權重</th></tr></thead><tbody>"
+        s = "<table><thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead><tbody>"
         for r in rows:
-            s += f"<tr><td class='code'>{r['code']}</td><td>{r['name']}</td><td class='num'>{r['shares']}</td><td class='neg'>{r['weight']}</td></tr>"
+            s += (f"<tr><td class='code'>{r['code']}</td><td>{r['name']}</td>"
+                  f"<td class='num'>{to_zhang(r['shares'])}</td><td class='neg'>{r['weight']}</td></tr>")
         return s + "</tbody></table>"
 
     return f"""<!DOCTYPE html>
@@ -172,7 +235,7 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
     .card .value.neg {{ color: #f87171; }}
     .card .value.warn {{ color: #fbbf24; }}
     section {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }}
-    section .sec-header {{ padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }}
+    section .sec-header {{ padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
     section .sec-header h2 {{ font-size: 1rem; font-weight: 600; color: #f1f5f9; }}
     section .sec-header .count {{ background: #334155; color: #94a3b8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }}
     .table-wrap {{ overflow-x: auto; }}
@@ -181,9 +244,9 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
     th {{ padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; }}
     th.sortable {{ cursor: pointer; }}
     th.sortable:hover {{ color: #94a3b8; }}
-    th .sort-icon {{ display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; }}
-    th.asc .sort-icon {{ opacity: 1; }}
-    th.desc .sort-icon {{ opacity: 1; transform: rotate(180deg); display: inline-block; }}
+    th .sort-icon {{ display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; transition: opacity .15s; }}
+    th.asc .sort-icon, th.desc .sort-icon {{ opacity: 1; }}
+    th.desc .sort-icon {{ display: inline-block; transform: rotate(180deg); }}
     td {{ padding: 9px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }}
     tbody tr:hover {{ background: #263148; }}
     .code {{ font-family: monospace; color: #93c5fd; font-size: 0.85rem; }}
@@ -191,11 +254,12 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
     .pos {{ color: #4ade80; font-weight: 600; }}
     .neg {{ color: #f87171; font-weight: 600; }}
     .zero {{ color: #475569; }}
-    .badge-new {{ font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 6px; text-align: center; }}
+    .badge-new {{ font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 8px; text-align: center; }}
     .weight-cell {{ min-width: 120px; }}
     .weight-bar-wrap {{ display: flex; align-items: center; gap: 8px; }}
     .weight-bar {{ height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }}
     .weight-label {{ color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.82rem; }}
+    .unit {{ font-size: 0.68rem; color: #475569; margin-left: 3px; }}
     .empty {{ color: #475569; padding: 16px 22px; font-style: italic; font-size: 0.85rem; }}
     footer {{ text-align: center; padding: 24px; color: #475569; font-size: 0.78rem; }}
     @media (max-width: 600px) {{
@@ -231,9 +295,9 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
             <tr>
               <th class="sortable" data-col="0">代號<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="1">名稱<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="2">今日股數<i class="sort-icon">▲</i></th>
+              <th class="sortable num" data-col="2">今日張數<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="3" data-default-desc="true">持股權重<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="4">股數變化<i class="sort-icon">▲</i></th>
+              <th class="sortable num" data-col="4">張數變化<i class="sort-icon">▲</i></th>
               <th class="sortable num" data-col="5">前日權重<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="6">權重變化<i class="sort-icon">▲</i></th>
             </tr>
@@ -248,13 +312,13 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
       <div class="table-wrap">{removed_table(removed_rows)}</div>
     </section>
   </main>
-  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新</footer>
+  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
   <script>
     (function () {{
       const table = document.getElementById('main-table');
       const tbody = table.querySelector('tbody');
-      let sortCol = 3, sortAsc = false; // 預設：持股權重 降冪
+      let sortCol = 3, sortAsc = false;
 
       function getVal(row, col) {{
         const cell = row.cells[col];
@@ -293,7 +357,6 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
         }});
       }});
 
-      // Apply initial sort (持股權重 降冪)
       sortTable(sortCol, sortAsc);
       updateHeaders(sortCol, sortAsc);
     }})();

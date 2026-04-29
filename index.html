@@ -20,7 +20,7 @@
     .card .value.neg { color: #f87171; }
     .card .value.warn { color: #fbbf24; }
     section { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
-    section .sec-header { padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    section .sec-header { padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     section .sec-header h2 { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
     section .sec-header .count { background: #334155; color: #94a3b8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }
     .table-wrap { overflow-x: auto; }
@@ -29,9 +29,9 @@
     th { padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; }
     th.sortable { cursor: pointer; }
     th.sortable:hover { color: #94a3b8; }
-    th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; }
-    th.asc .sort-icon { opacity: 1; }
-    th.desc .sort-icon { opacity: 1; transform: rotate(180deg); display: inline-block; }
+    th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; transition: opacity .15s; }
+    th.asc .sort-icon, th.desc .sort-icon { opacity: 1; }
+    th.desc .sort-icon { display: inline-block; transform: rotate(180deg); }
     td { padding: 9px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }
     tbody tr:hover { background: #263148; }
     .code { font-family: monospace; color: #93c5fd; font-size: 0.85rem; }
@@ -39,11 +39,12 @@
     .pos { color: #4ade80; font-weight: 600; }
     .neg { color: #f87171; font-weight: 600; }
     .zero { color: #475569; }
-    .badge-new { font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 6px; text-align: center; }
+    .badge-new { font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 8px; text-align: center; }
     .weight-cell { min-width: 120px; }
     .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
     .weight-bar { height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }
     .weight-label { color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.82rem; }
+    .unit { font-size: 0.68rem; color: #475569; margin-left: 3px; }
     .empty { color: #475569; padding: 16px 22px; font-style: italic; font-size: 0.85rem; }
     footer { text-align: center; padding: 24px; color: #475569; font-size: 0.78rem; }
     @media (max-width: 600px) {
@@ -79,9 +80,9 @@
             <tr>
               <th class="sortable" data-col="0">代號<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="1">名稱<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="2">今日股數<i class="sort-icon">▲</i></th>
+              <th class="sortable num" data-col="2">今日張數<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="3" data-default-desc="true">持股權重<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="4">股數變化<i class="sort-icon">▲</i></th>
+              <th class="sortable num" data-col="4">張數變化<i class="sort-icon">▲</i></th>
               <th class="sortable num" data-col="5">前日權重<i class="sort-icon">▲</i></th>
               <th class="sortable" data-col="6">權重變化<i class="sort-icon">▲</i></th>
             </tr>
@@ -90,441 +91,441 @@
         <tr>
           <td class="code" data-sort="2330">2330</td>
           <td data-sort="台積電">台積電</td>
-          <td class="num" data-sort="9693000.0">9,693,000</td>
+          <td class="num" data-sort="9693000.0">9,693</td>
           <td class="weight-cell" data-sort="9.11">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:72%"></div>
               <span class="weight-label">9.11%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="9.46">9.46%</td>
           <td class="neg" data-sort="-0.35">-0.35%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2383">2383</td>
           <td data-sort="台光電">台光電</td>
-          <td class="num" data-sort="4425000.0">4,425,000</td>
+          <td class="num" data-sort="4425000.0">4,425</td>
           <td class="weight-cell" data-sort="8.21">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:65%"></div>
               <span class="weight-label">8.21%</span>
             </div>
           </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="8.21">8.21%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="num zero" data-sort="0.0">—</td>
+          <td class="num" data-sort="9.02">9.02%</td>
+          <td class="neg" data-sort="-0.81">-0.81%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2345">2345</td>
           <td data-sort="智邦">智邦</td>
-          <td class="num" data-sort="6031000.0">6,031,000</td>
+          <td class="num" data-sort="6031000.0">6,031</td>
           <td class="weight-cell" data-sort="5.87">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:46%"></div>
               <span class="weight-label">5.87%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="5.65">5.65%</td>
           <td class="pos" data-sort="0.22">+0.22%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2308">2308</td>
           <td data-sort="台達電">台達電</td>
-          <td class="num" data-sort="6024000.0">6,024,000</td>
+          <td class="num" data-sort="6024000.0">6,024</td>
           <td class="weight-cell" data-sort="5.43">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:43%"></div>
               <span class="weight-label">5.43%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="5.24">5.24%</td>
           <td class="pos" data-sort="0.19">+0.19%</td>
         </tr>
         <tr>
           <td class="code" data-sort="8046">8046</td>
           <td data-sort="南電">南電</td>
-          <td class="num" data-sort="12637000.0">12,637,000</td>
+          <td class="num" data-sort="12637000.0">12,637</td>
           <td class="weight-cell" data-sort="5.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:40%"></div>
               <span class="weight-label">5%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="4.97">4.97%</td>
           <td class="pos" data-sort="0.03">+0.03%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3665">3665</td>
           <td data-sort="貿聯-KY">貿聯-KY</td>
-          <td class="num" data-sort="4377848.0">4,377,848</td>
+          <td class="num" data-sort="4377848.0">4,377</td>
           <td class="weight-cell" data-sort="4.88">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:39%"></div>
               <span class="weight-label">4.88%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="4.96">4.96%</td>
           <td class="neg" data-sort="-0.08">-0.08%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2368">2368</td>
           <td data-sort="金像電">金像電</td>
-          <td class="num" data-sort="8240000.0">8,240,000</td>
+          <td class="num" data-sort="8240000.0">8,240</td>
           <td class="weight-cell" data-sort="4.86">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:38%"></div>
               <span class="weight-label">4.86%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="5.04">5.04%</td>
           <td class="neg" data-sort="-0.18">-0.18%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2454">2454</td>
           <td data-sort="聯發科">聯發科</td>
-          <td class="num" data-sort="4363000.0">4,363,000</td>
+          <td class="num" data-sort="4363000.0">4,363</td>
           <td class="weight-cell" data-sort="4.84">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:38%"></div>
               <span class="weight-label">4.84%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="216000.0">+216000</td>
+          <td class="num pos" data-sort="216000.0">+216</td>
           <td class="num" data-sort="4.35">4.35%</td>
           <td class="pos" data-sort="0.49">+0.49%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3653">3653</td>
           <td data-sort="健策">健策</td>
-          <td class="num" data-sort="2267000.0">2,267,000</td>
+          <td class="num" data-sort="2267000.0">2,267</td>
           <td class="weight-cell" data-sort="4.76">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:38%"></div>
               <span class="weight-label">4.76%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="4.84">4.84%</td>
           <td class="neg" data-sort="-0.08">-0.08%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3017">3017</td>
           <td data-sort="奇鋐">奇鋐</td>
-          <td class="num" data-sort="3902000.0">3,902,000</td>
+          <td class="num" data-sort="3902000.0">3,902</td>
           <td class="weight-cell" data-sort="4.6">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:36%"></div>
               <span class="weight-label">4.6%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="4.77">4.77%</td>
           <td class="neg" data-sort="-0.17">-0.17%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6223">6223</td>
           <td data-sort="旺矽">旺矽</td>
-          <td class="num" data-sort="1886000.0">1,886,000</td>
+          <td class="num" data-sort="1886000.0">1,886</td>
           <td class="weight-cell" data-sort="3.9">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:31%"></div>
               <span class="weight-label">3.9%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="3.96">3.96%</td>
           <td class="neg" data-sort="-0.06">-0.06%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6669">6669</td>
           <td data-sort="緯穎">緯穎</td>
-          <td class="num" data-sort="1635000.0">1,635,000</td>
+          <td class="num" data-sort="1635000.0">1,635</td>
           <td class="weight-cell" data-sort="3.33">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:26%"></div>
               <span class="weight-label">3.33%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="86000.0">+86000</td>
+          <td class="num pos" data-sort="86000.0">+86</td>
           <td class="num" data-sort="3.26">3.26%</td>
           <td class="pos" data-sort="0.07">+0.07%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3037">3037</td>
           <td data-sort="欣興">欣興</td>
-          <td class="num" data-sort="9287000.0">9,287,000</td>
+          <td class="num" data-sort="9287000.0">9,287</td>
           <td class="weight-cell" data-sort="3.25">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:26%"></div>
               <span class="weight-label">3.25%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="3.36">3.36%</td>
           <td class="neg" data-sort="-0.11">-0.11%</td>
         </tr>
         <tr>
           <td class="code" data-sort="5274">5274</td>
           <td data-sort="信驊">信驊</td>
-          <td class="num" data-sort="373000.0">373,000</td>
+          <td class="num" data-sort="373000.0">373</td>
           <td class="weight-cell" data-sort="2.55">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:20%"></div>
               <span class="weight-label">2.55%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="2.57">2.57%</td>
           <td class="neg" data-sort="-0.02">-0.02%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2327">2327</td>
           <td data-sort="國巨*">國巨*</td>
-          <td class="num" data-sort="16954000.0">16,954,000</td>
+          <td class="num" data-sort="16954000.0">16,954</td>
           <td class="weight-cell" data-sort="2.35">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:18%"></div>
               <span class="weight-label">2.35%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="1758000.0">+1758000</td>
+          <td class="num pos" data-sort="1758000.0">+1,758</td>
           <td class="num" data-sort="2.0">2.0%</td>
           <td class="pos" data-sort="0.35">+0.35%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3711">3711</td>
           <td data-sort="日月光投控">日月光投控</td>
-          <td class="num" data-sort="9536000.0">9,536,000</td>
+          <td class="num" data-sort="9536000.0">9,536</td>
           <td class="weight-cell" data-sort="2.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:16%"></div>
               <span class="weight-label">2%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="1362000.0">+1362000</td>
+          <td class="num pos" data-sort="1362000.0">+1,362</td>
           <td class="num" data-sort="1.74">1.74%</td>
           <td class="pos" data-sort="0.26">+0.26%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6805">6805</td>
           <td data-sort="富世達">富世達</td>
-          <td class="num" data-sort="2099000.0">2,099,000</td>
+          <td class="num" data-sort="2099000.0">2,099</td>
           <td class="weight-cell" data-sort="1.86">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:14%"></div>
               <span class="weight-label">1.86%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.87">1.87%</td>
           <td class="neg" data-sort="-0.01">-0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6515">6515</td>
           <td data-sort="穎崴">穎崴</td>
-          <td class="num" data-sort="391000.0">391,000</td>
+          <td class="num" data-sort="391000.0">391</td>
           <td class="weight-cell" data-sort="1.68">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:13%"></div>
               <span class="weight-label">1.68%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.61">1.61%</td>
           <td class="pos" data-sort="0.07">+0.07%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2449">2449</td>
           <td data-sort="京元電子">京元電子</td>
-          <td class="num" data-sort="12719000.0">12,719,000</td>
+          <td class="num" data-sort="12719000.0">12,719</td>
           <td class="weight-cell" data-sort="1.53">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:12%"></div>
               <span class="weight-label">1.53%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="1547000.0">+1547000</td>
+          <td class="num pos" data-sort="1547000.0">+1,547</td>
           <td class="num" data-sort="1.36">1.36%</td>
           <td class="pos" data-sort="0.17">+0.17%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6510">6510</td>
           <td data-sort="精測">精測</td>
-          <td class="num" data-sort="930000.0">930,000</td>
+          <td class="num" data-sort="930000.0">930</td>
           <td class="weight-cell" data-sort="1.46">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:11%"></div>
               <span class="weight-label">1.46%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.43">1.43%</td>
           <td class="pos" data-sort="0.03">+0.03%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2303">2303</td>
           <td data-sort="聯電">聯電</td>
-          <td class="num" data-sort="40054000.0">40,054,000</td>
+          <td class="num" data-sort="40054000.0">40,054</td>
           <td class="weight-cell" data-sort="1.28">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:10%"></div>
               <span class="weight-label">1.28%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="7263000.0">+7263000</td>
+          <td class="num pos" data-sort="7263000.0">+7,263</td>
           <td class="num" data-sort="1.03">1.03%</td>
           <td class="pos" data-sort="0.25">+0.25%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3661">3661</td>
           <td data-sort="世芯-KY">世芯-KY</td>
-          <td class="num" data-sort="738000.0">738,000</td>
+          <td class="num" data-sort="738000.0">738</td>
           <td class="weight-cell" data-sort="1.25">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:10%"></div>
               <span class="weight-label">1.25%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.32">1.32%</td>
           <td class="neg" data-sort="-0.07">-0.07%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6274">6274</td>
           <td data-sort="台燿">台燿</td>
-          <td class="num" data-sort="3019000.0">3,019,000</td>
+          <td class="num" data-sort="3019000.0">3,019</td>
           <td class="weight-cell" data-sort="1.24">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:9%"></div>
               <span class="weight-label">1.24%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.29">1.29%</td>
           <td class="neg" data-sort="-0.05">-0.05%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3189">3189</td>
           <td data-sort="景碩">景碩</td>
-          <td class="num" data-sort="5358000.0">5,358,000</td>
+          <td class="num" data-sort="5358000.0">5,358</td>
           <td class="weight-cell" data-sort="1.15">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:9%"></div>
               <span class="weight-label">1.15%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.19">1.19%</td>
           <td class="neg" data-sort="-0.04">-0.04%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2317">2317</td>
           <td data-sort="鴻海">鴻海</td>
-          <td class="num" data-sort="10727000.0">10,727,000</td>
+          <td class="num" data-sort="10727000.0">10,727</td>
           <td class="weight-cell" data-sort="1.03">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:8%"></div>
               <span class="weight-label">1.03%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="1.05">1.05%</td>
           <td class="neg" data-sort="-0.02">-0.02%</td>
         </tr>
         <tr>
           <td class="code" data-sort="8358">8358</td>
           <td data-sort="金居">金居</td>
-          <td class="num" data-sort="5558000.0">5,558,000</td>
+          <td class="num" data-sort="5558000.0">5,558</td>
           <td class="weight-cell" data-sort="0.85">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:6%"></div>
               <span class="weight-label">0.85%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.8">0.8%</td>
           <td class="pos" data-sort="0.05">+0.05%</td>
         </tr>
         <tr>
           <td class="code" data-sort="8210">8210</td>
           <td data-sort="勤誠">勤誠</td>
-          <td class="num" data-sort="1117000.0">1,117,000</td>
+          <td class="num" data-sort="1117000.0">1,117</td>
           <td class="weight-cell" data-sort="0.55">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:4%"></div>
               <span class="weight-label">0.55%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.56">0.56%</td>
           <td class="neg" data-sort="-0.01">-0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="5439">5439</td>
           <td data-sort="高技">高技</td>
-          <td class="num" data-sort="3130000.0">3,130,000</td>
+          <td class="num" data-sort="3130000.0">3,130</td>
           <td class="weight-cell" data-sort="0.53">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:4%"></div>
               <span class="weight-label">0.53%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.5">0.5%</td>
           <td class="pos" data-sort="0.03">+0.03%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3443">3443</td>
           <td data-sort="創意">創意</td>
-          <td class="num" data-sort="271000.0">271,000</td>
+          <td class="num" data-sort="271000.0">271</td>
           <td class="weight-cell" data-sort="0.48">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:3%"></div>
               <span class="weight-label">0.48%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.46">0.46%</td>
           <td class="pos" data-sort="0.02">+0.02%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6147">6147</td>
           <td data-sort="頎邦">頎邦</td>
-          <td class="num" data-sort="7884000.0">7,884,000</td>
+          <td class="num" data-sort="7884000.0">7,884</td>
           <td class="weight-cell" data-sort="0.48">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:3%"></div>
               <span class="weight-label">0.48%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.44">0.44%</td>
           <td class="pos" data-sort="0.04">+0.04%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2404">2404</td>
           <td data-sort="漢唐">漢唐</td>
-          <td class="num" data-sort="1091000.0">1,091,000</td>
+          <td class="num" data-sort="1091000.0">1,091</td>
           <td class="weight-cell" data-sort="0.45">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:3%"></div>
               <span class="weight-label">0.45%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.46">0.46%</td>
           <td class="neg" data-sort="-0.01">-0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3264">3264</td>
           <td data-sort="欣銓">欣銓</td>
-          <td class="num" data-sort="4897000.0">4,897,000</td>
+          <td class="num" data-sort="4897000.0">4,897</td>
           <td class="weight-cell" data-sort="0.41">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:3%"></div>
@@ -533,40 +534,40 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.41">0.41%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="1590">1590</td>
           <td data-sort="亞德客-KY">亞德客-KY</td>
-          <td class="num" data-sort="500000.0">500,000</td>
+          <td class="num" data-sort="500000.0">500</td>
           <td class="weight-cell" data-sort="0.3">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:2%"></div>
               <span class="weight-label">0.3%</span>
             </div>
           </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.3">0.3%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="pos badge-new" data-sort="999999">新增</td>
+          <td data-sort="0">—</td>
+          <td class="pos" data-sort="999999">新增</td>
         </tr>
         <tr>
           <td class="code" data-sort="8996">8996</td>
           <td data-sort="高力">高力</td>
-          <td class="num" data-sort="535000.0">535,000</td>
+          <td class="num" data-sort="535000.0">535</td>
           <td class="weight-cell" data-sort="0.27">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:2%"></div>
               <span class="weight-label">0.27%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.25">0.25%</td>
           <td class="pos" data-sort="0.02">+0.02%</td>
         </tr>
         <tr>
           <td class="code" data-sort="7769">7769</td>
           <td data-sort="鴻勁">鴻勁</td>
-          <td class="num" data-sort="98000.0">98,000</td>
+          <td class="num" data-sort="98000.0">98</td>
           <td class="weight-cell" data-sort="0.21">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
@@ -575,12 +576,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.21">0.21%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="2337">2337</td>
           <td data-sort="旺宏">旺宏</td>
-          <td class="num" data-sort="2910000.0">2,910,000</td>
+          <td class="num" data-sort="2910000.0">2,910</td>
           <td class="weight-cell" data-sort="0.2">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
@@ -594,7 +595,7 @@
         <tr>
           <td class="code" data-sort="6191">6191</td>
           <td data-sort="精成科">精成科</td>
-          <td class="num" data-sort="3986000.0">3,986,000</td>
+          <td class="num" data-sort="3986000.0">3,986</td>
           <td class="weight-cell" data-sort="0.18">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
@@ -603,12 +604,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.18">0.18%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="3376">3376</td>
           <td data-sort="新日興">新日興</td>
-          <td class="num" data-sort="1681000.0">1,681,000</td>
+          <td class="num" data-sort="1681000.0">1,681</td>
           <td class="weight-cell" data-sort="0.15">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
@@ -617,40 +618,40 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.15">0.15%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="2481">2481</td>
           <td data-sort="強茂">強茂</td>
-          <td class="num" data-sort="3652000.0">3,652,000</td>
+          <td class="num" data-sort="3652000.0">3,652</td>
           <td class="weight-cell" data-sort="0.15">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
               <span class="weight-label">0.15%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.16">0.16%</td>
           <td class="neg" data-sort="-0.01">-0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2313">2313</td>
           <td data-sort="華通">華通</td>
-          <td class="num" data-sort="1343000.0">1,343,000</td>
+          <td class="num" data-sort="1343000.0">1,343</td>
           <td class="weight-cell" data-sort="0.14">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:1%"></div>
               <span class="weight-label">0.14%</span>
             </div>
           </td>
-          <td class="num pos" data-sort="500000.0">+500000</td>
+          <td class="num pos" data-sort="500000.0">+500</td>
           <td class="num" data-sort="0.09">0.09%</td>
           <td class="pos" data-sort="0.05">+0.05%</td>
         </tr>
         <tr>
           <td class="code" data-sort="6415">6415</td>
           <td data-sort="矽力*-KY">矽力*-KY</td>
-          <td class="num" data-sort="660000.0">660,000</td>
+          <td class="num" data-sort="660000.0">660</td>
           <td class="weight-cell" data-sort="0.12">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -659,26 +660,26 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.12">0.12%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="4966">4966</td>
           <td data-sort="譜瑞-KY">譜瑞-KY</td>
-          <td class="num" data-sort="371000.0">371,000</td>
+          <td class="num" data-sort="371000.0">371</td>
           <td class="weight-cell" data-sort="0.09">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
               <span class="weight-label">0.09%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.1">0.1%</td>
           <td class="neg" data-sort="-0.01">-0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="3217">3217</td>
           <td data-sort="優群">優群</td>
-          <td class="num" data-sort="830000.0">830,000</td>
+          <td class="num" data-sort="830000.0">830</td>
           <td class="weight-cell" data-sort="0.06">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -687,12 +688,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.06">0.06%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="1303">1303</td>
           <td data-sort="南亞">南亞</td>
-          <td class="num" data-sort="1374000.0">1,374,000</td>
+          <td class="num" data-sort="1374000.0">1,374</td>
           <td class="weight-cell" data-sort="0.05">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -701,12 +702,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.05">0.05%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="2002">2002</td>
           <td data-sort="中鋼">中鋼</td>
-          <td class="num" data-sort="5161000.0">5,161,000</td>
+          <td class="num" data-sort="5161000.0">5,161</td>
           <td class="weight-cell" data-sort="0.04">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -715,12 +716,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.04">0.04%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="1319">1319</td>
           <td data-sort="東陽">東陽</td>
-          <td class="num" data-sort="509000.0">509,000</td>
+          <td class="num" data-sort="509000.0">509</td>
           <td class="weight-cell" data-sort="0.02">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -729,26 +730,26 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.02">0.02%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="1815">1815</td>
           <td data-sort="富喬">富喬</td>
-          <td class="num" data-sort="107000.0">107,000</td>
+          <td class="num" data-sort="107000.0">107</td>
           <td class="weight-cell" data-sort="0.01">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
               <span class="weight-label">0.01%</span>
             </div>
           </td>
-          <td class="num zero" data-sort="0.0">0</td>
+          <td class="num zero" data-sort="0.0">—</td>
           <td class="num" data-sort="0.0">0.0%</td>
           <td class="pos" data-sort="0.01">+0.01%</td>
         </tr>
         <tr>
           <td class="code" data-sort="2357">2357</td>
           <td data-sort="華碩">華碩</td>
-          <td class="num" data-sort="16000.0">16,000</td>
+          <td class="num" data-sort="16000.0">16</td>
           <td class="weight-cell" data-sort="0.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -757,12 +758,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="2439">2439</td>
           <td data-sort="美律">美律</td>
-          <td class="num" data-sort="16000.0">16,000</td>
+          <td class="num" data-sort="16000.0">16</td>
           <td class="weight-cell" data-sort="0.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -771,12 +772,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="4979">4979</td>
           <td data-sort="華星光">華星光</td>
-          <td class="num" data-sort="1000.0">1,000</td>
+          <td class="num" data-sort="1000.0">1</td>
           <td class="weight-cell" data-sort="0.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -785,12 +786,12 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr>
         <tr>
           <td class="code" data-sort="5347">5347</td>
           <td data-sort="世界">世界</td>
-          <td class="num" data-sort="62000.0">62,000</td>
+          <td class="num" data-sort="62000.0">62</td>
           <td class="weight-cell" data-sort="0.0">
             <div class="weight-bar-wrap">
               <div class="weight-bar" style="width:0%"></div>
@@ -799,7 +800,7 @@
           </td>
           <td class="zero" data-sort="0">—</td>
           <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">0%</td>
+          <td class="zero" data-sort="0">—</td>
         </tr></tbody>
         </table>
       </div>
@@ -807,16 +808,16 @@
 
     <section>
       <div class="sec-header"><h2>🔴 刪除股票</h2><span class="count">2 檔</span></div>
-      <div class="table-wrap"><table><thead><tr><th>代號</th><th>名稱</th><th>原股數</th><th>原權重</th></tr></thead><tbody><tr><td class='code'>|----------|----------|------|----------|</td><td>1590 | 亞德客-KY</td><td class='num'>500,000</td><td class='neg'>0.3%</td></tr><tr><td class='code'>2337</td><td>旺宏</td><td class='num'>2,910,000</td><td class='neg'>0.2%</td></tr></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead><tbody><tr><td class='code'>3211</td><td>順達</td><td class='num'>458</td><td class='neg'>0.08%</td></tr><tr><td class='code'>6488</td><td>環球晶</td><td class='num'>333</td><td class='neg'>0.09%</td></tr></tbody></table></div>
     </section>
   </main>
-  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新</footer>
+  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
   <script>
     (function () {
       const table = document.getElementById('main-table');
       const tbody = table.querySelector('tbody');
-      let sortCol = 3, sortAsc = false; // 預設：持股權重 降冪
+      let sortCol = 3, sortAsc = false;
 
       function getVal(row, col) {
         const cell = row.cells[col];
@@ -855,7 +856,6 @@
         });
       });
 
-      // Apply initial sort (持股權重 降冪)
       sortTable(sortCol, sortAsc);
       updateHeaders(sortCol, sortAsc);
     })();
