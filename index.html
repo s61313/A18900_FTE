@@ -7,858 +7,429 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
-    header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 24px 32px; }
-    header h1 { font-size: 1.6rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em; }
-    header p { color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }
-    .badge { display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }
-    main { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
-    .cards { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px 22px; min-width: 140px; flex: 1; }
-    .card .label { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
-    .card .value { font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }
+    header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 20px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    header h1 { font-size: 1.4rem; font-weight: 700; color: #f8fafc; }
+    header p { color: #94a3b8; font-size: 0.82rem; margin-left: auto; }
+    .badge { display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+    main { max-width: 1280px; margin: 0 auto; padding: 24px 20px; }
+
+    /* Controls */
+    .controls { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .controls label { font-size: 0.8rem; color: #94a3b8; }
+    .controls select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 5px 10px; font-size: 0.82rem; cursor: pointer; }
+    .controls select:focus { outline: none; border-color: #3b82f6; }
+    .controls .sep { color: #475569; font-size: 1rem; }
+    .mode-badge { font-size: 0.72rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+    .mode-single { background: #1e3a5f; color: #60a5fa; }
+    .mode-multi { background: #1a3a2a; color: #4ade80; }
+
+    /* Summary cards */
+    .cards { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 18px; min-width: 120px; flex: 1; }
+    .card .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .card .value { font-size: 1.7rem; font-weight: 700; color: #f1f5f9; }
     .card .value.pos { color: #4ade80; }
     .card .value.neg { color: #f87171; }
     .card .value.warn { color: #fbbf24; }
-    section { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
-    section .sec-header { padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    section .sec-header h2 { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
-    section .sec-header .count { background: #334155; color: #94a3b8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }
+
+    /* Sections */
+    section { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+    .sec-header { padding: 14px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sec-header h2 { font-size: 0.95rem; font-weight: 600; color: #f1f5f9; }
+    .count { background: #334155; color: #94a3b8; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }
+    .hint { color: #475569; font-size: 0.75rem; margin-left: auto; }
+
+    /* Streak section */
+    .streak-body { padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .streak-row { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .streak-label { font-size: 0.78rem; color: #94a3b8; white-space: nowrap; padding-top: 2px; min-width: 60px; }
+    .streak-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; font-weight: 600; }
+    .chip-buy { background: #14532d; color: #4ade80; }
+    .chip-sell { background: #450a0a; color: #f87171; }
+    .chip .chip-code { font-family: monospace; }
+    .chip .chip-name { color: inherit; opacity: 0.8; font-weight: 400; }
+    .streak-empty { color: #475569; font-style: italic; font-size: 0.82rem; padding: 8px 0; }
+
+    /* Table */
     .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
     thead tr { background: #0f172a; }
-    th { padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; }
-    th.sortable { cursor: pointer; }
-    th.sortable:hover { color: #94a3b8; }
-    th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; transition: opacity .15s; }
-    th.asc .sort-icon, th.desc .sort-icon { opacity: 1; }
-    th.desc .sort-icon { display: inline-block; transform: rotate(180deg); }
-    td { padding: 9px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }
-    tbody tr:hover { background: #263148; }
-    .code { font-family: monospace; color: #93c5fd; font-size: 0.85rem; }
+    th { padding: 10px 13px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; cursor: pointer; }
+    th:hover { color: #94a3b8; }
+    th .si { display: inline-block; margin-left: 3px; opacity: 0.25; font-style: normal; font-size: 0.65rem; }
+    th.asc .si, th.desc .si { opacity: 1; }
+    th.desc .si { display: inline-block; transform: rotate(180deg); }
+    td { padding: 8px 13px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }
+    tbody tr:hover { background: #1e3248; }
+    .code { font-family: monospace; color: #93c5fd; font-size: 0.84rem; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .pos { color: #4ade80; font-weight: 600; }
     .neg { color: #f87171; font-weight: 600; }
     .zero { color: #475569; }
-    .badge-new { font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 8px; text-align: center; }
-    .weight-cell { min-width: 120px; }
-    .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .weight-bar { height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }
-    .weight-label { color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.82rem; }
-    .unit { font-size: 0.68rem; color: #475569; margin-left: 3px; }
-    .empty { color: #475569; padding: 16px 22px; font-style: italic; font-size: 0.85rem; }
-    footer { text-align: center; padding: 24px; color: #475569; font-size: 0.78rem; }
-    @media (max-width: 600px) {
-      .cards { gap: 10px; }
+    .hidden { display: none !important; }
+
+    /* Weight bar */
+    .w-wrap { display: flex; align-items: center; gap: 7px; }
+    .w-bar { height: 5px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }
+    .w-lbl { color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+
+    /* Streak badges in table */
+    .streak-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+    .streak-tag.buy { background: #14532d; color: #4ade80; }
+    .streak-tag.sell { background: #450a0a; color: #f87171; }
+    .badge-new { font-size: 0.68rem; background: #1e3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 6px; }
+
+    .empty { color: #475569; padding: 14px 20px; font-style: italic; font-size: 0.82rem; }
+    footer { text-align: center; padding: 20px; color: #475569; font-size: 0.75rem; }
+
+    @media (max-width: 640px) {
+      header { padding: 14px 16px; }
+      .cards { gap: 8px; }
       .card .value { font-size: 1.4rem; }
-      th, td { padding: 7px 10px; }
+      th, td { padding: 6px 9px; }
+      .controls { gap: 8px; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>49YTW 持股追蹤 <span class="badge">自動更新</span></h1>
-    <p>資料日期：2026/04/28 &nbsp;·&nbsp; 產生時間：2026-04-28 17:27:37</p>
-  </header>
-  <main>
-    <div class="cards">
-      <div class="card"><div class="label">持股總數</div><div class="value">51 <span style="font-size:1rem;color:#64748b">檔</span></div></div>
-      <div class="card"><div class="label">新增</div><div class="value pos">2</div></div>
-      <div class="card"><div class="label">刪除</div><div class="value neg">2</div></div>
-      <div class="card"><div class="label">異動</div><div class="value warn">36</div></div>
-      <div class="card"><div class="label">比較區間</div><div class="value" style="font-size:0.9rem;padding-top:4px">2026/04/27<br>→ 2026/04/28</div></div>
+<header>
+  <h1>49YTW 持股追蹤 <span class="badge">自動更新</span></h1>
+  <p id="hdr-date">最新資料：2026/04/28</p>
+</header>
+<main>
+
+  <!-- 比較區間控制 -->
+  <div class="controls">
+    <label>比較區間：</label>
+    <select id="sel-start"></select>
+    <span class="sep">→</span>
+    <select id="sel-end"></select>
+    <span id="mode-badge" class="mode-badge mode-single">單日</span>
+  </div>
+
+  <!-- 摘要卡片 -->
+  <div class="cards">
+    <div class="card"><div class="label">持股總數</div><div class="value" id="c-total">—</div></div>
+    <div class="card"><div class="label">新增</div><div class="value pos" id="c-add">—</div></div>
+    <div class="card"><div class="label">刪除</div><div class="value neg" id="c-del">—</div></div>
+    <div class="card"><div class="label">異動</div><div class="value warn" id="c-chg">—</div></div>
+    <div class="card"><div class="label">比較區間</div><div class="value" id="c-range" style="font-size:0.85rem;line-height:1.4">—</div></div>
+  </div>
+
+  <!-- 連續動態 -->
+  <section id="streak-sec">
+    <div class="sec-header">
+      <h2>🔥 連續動態</h2>
+      <span class="hint">依全部歷史資料計算</span>
     </div>
+    <div class="streak-body" id="streak-body"></div>
+  </section>
 
-    <section>
-      <div class="sec-header">
-        <h2>📋 今日持股 &amp; 異動</h2>
-        <span class="count">51 檔</span>
-        <span style="color:#475569;font-size:0.78rem;margin-left:auto">點擊欄位標題排序</span>
-      </div>
-      <div class="table-wrap">
-        <table id="main-table">
-          <thead>
-            <tr>
-              <th class="sortable" data-col="0">代號<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="1">名稱<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="2">今日張數<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="3" data-default-desc="true">持股權重<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="4">張數變化<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="5">前日權重<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="6">權重變化<i class="sort-icon">▲</i></th>
-            </tr>
-          </thead>
-          <tbody>
-        <tr>
-          <td class="code" data-sort="2330">2330</td>
-          <td data-sort="台積電">台積電</td>
-          <td class="num" data-sort="9693000.0">9,693</td>
-          <td class="weight-cell" data-sort="9.11">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:72%"></div>
-              <span class="weight-label">9.11%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="9.46">9.46%</td>
-          <td class="neg" data-sort="-0.35">-0.35%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2383">2383</td>
-          <td data-sort="台光電">台光電</td>
-          <td class="num" data-sort="4425000.0">4,425</td>
-          <td class="weight-cell" data-sort="8.21">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:65%"></div>
-              <span class="weight-label">8.21%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="9.02">9.02%</td>
-          <td class="neg" data-sort="-0.81">-0.81%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2345">2345</td>
-          <td data-sort="智邦">智邦</td>
-          <td class="num" data-sort="6031000.0">6,031</td>
-          <td class="weight-cell" data-sort="5.87">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:46%"></div>
-              <span class="weight-label">5.87%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="5.65">5.65%</td>
-          <td class="pos" data-sort="0.22">+0.22%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2308">2308</td>
-          <td data-sort="台達電">台達電</td>
-          <td class="num" data-sort="6024000.0">6,024</td>
-          <td class="weight-cell" data-sort="5.43">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:43%"></div>
-              <span class="weight-label">5.43%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="5.24">5.24%</td>
-          <td class="pos" data-sort="0.19">+0.19%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="8046">8046</td>
-          <td data-sort="南電">南電</td>
-          <td class="num" data-sort="12637000.0">12,637</td>
-          <td class="weight-cell" data-sort="5.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:40%"></div>
-              <span class="weight-label">5%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="4.97">4.97%</td>
-          <td class="pos" data-sort="0.03">+0.03%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3665">3665</td>
-          <td data-sort="貿聯-KY">貿聯-KY</td>
-          <td class="num" data-sort="4377848.0">4,377</td>
-          <td class="weight-cell" data-sort="4.88">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:39%"></div>
-              <span class="weight-label">4.88%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="4.96">4.96%</td>
-          <td class="neg" data-sort="-0.08">-0.08%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2368">2368</td>
-          <td data-sort="金像電">金像電</td>
-          <td class="num" data-sort="8240000.0">8,240</td>
-          <td class="weight-cell" data-sort="4.86">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:38%"></div>
-              <span class="weight-label">4.86%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="5.04">5.04%</td>
-          <td class="neg" data-sort="-0.18">-0.18%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2454">2454</td>
-          <td data-sort="聯發科">聯發科</td>
-          <td class="num" data-sort="4363000.0">4,363</td>
-          <td class="weight-cell" data-sort="4.84">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:38%"></div>
-              <span class="weight-label">4.84%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="216000.0">+216</td>
-          <td class="num" data-sort="4.35">4.35%</td>
-          <td class="pos" data-sort="0.49">+0.49%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3653">3653</td>
-          <td data-sort="健策">健策</td>
-          <td class="num" data-sort="2267000.0">2,267</td>
-          <td class="weight-cell" data-sort="4.76">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:38%"></div>
-              <span class="weight-label">4.76%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="4.84">4.84%</td>
-          <td class="neg" data-sort="-0.08">-0.08%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3017">3017</td>
-          <td data-sort="奇鋐">奇鋐</td>
-          <td class="num" data-sort="3902000.0">3,902</td>
-          <td class="weight-cell" data-sort="4.6">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:36%"></div>
-              <span class="weight-label">4.6%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="4.77">4.77%</td>
-          <td class="neg" data-sort="-0.17">-0.17%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6223">6223</td>
-          <td data-sort="旺矽">旺矽</td>
-          <td class="num" data-sort="1886000.0">1,886</td>
-          <td class="weight-cell" data-sort="3.9">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:31%"></div>
-              <span class="weight-label">3.9%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="3.96">3.96%</td>
-          <td class="neg" data-sort="-0.06">-0.06%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6669">6669</td>
-          <td data-sort="緯穎">緯穎</td>
-          <td class="num" data-sort="1635000.0">1,635</td>
-          <td class="weight-cell" data-sort="3.33">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:26%"></div>
-              <span class="weight-label">3.33%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="86000.0">+86</td>
-          <td class="num" data-sort="3.26">3.26%</td>
-          <td class="pos" data-sort="0.07">+0.07%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3037">3037</td>
-          <td data-sort="欣興">欣興</td>
-          <td class="num" data-sort="9287000.0">9,287</td>
-          <td class="weight-cell" data-sort="3.25">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:26%"></div>
-              <span class="weight-label">3.25%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="3.36">3.36%</td>
-          <td class="neg" data-sort="-0.11">-0.11%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="5274">5274</td>
-          <td data-sort="信驊">信驊</td>
-          <td class="num" data-sort="373000.0">373</td>
-          <td class="weight-cell" data-sort="2.55">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:20%"></div>
-              <span class="weight-label">2.55%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="2.57">2.57%</td>
-          <td class="neg" data-sort="-0.02">-0.02%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2327">2327</td>
-          <td data-sort="國巨*">國巨*</td>
-          <td class="num" data-sort="16954000.0">16,954</td>
-          <td class="weight-cell" data-sort="2.35">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:18%"></div>
-              <span class="weight-label">2.35%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="1758000.0">+1,758</td>
-          <td class="num" data-sort="2.0">2.0%</td>
-          <td class="pos" data-sort="0.35">+0.35%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3711">3711</td>
-          <td data-sort="日月光投控">日月光投控</td>
-          <td class="num" data-sort="9536000.0">9,536</td>
-          <td class="weight-cell" data-sort="2.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:16%"></div>
-              <span class="weight-label">2%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="1362000.0">+1,362</td>
-          <td class="num" data-sort="1.74">1.74%</td>
-          <td class="pos" data-sort="0.26">+0.26%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6805">6805</td>
-          <td data-sort="富世達">富世達</td>
-          <td class="num" data-sort="2099000.0">2,099</td>
-          <td class="weight-cell" data-sort="1.86">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:14%"></div>
-              <span class="weight-label">1.86%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.87">1.87%</td>
-          <td class="neg" data-sort="-0.01">-0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6515">6515</td>
-          <td data-sort="穎崴">穎崴</td>
-          <td class="num" data-sort="391000.0">391</td>
-          <td class="weight-cell" data-sort="1.68">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:13%"></div>
-              <span class="weight-label">1.68%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.61">1.61%</td>
-          <td class="pos" data-sort="0.07">+0.07%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2449">2449</td>
-          <td data-sort="京元電子">京元電子</td>
-          <td class="num" data-sort="12719000.0">12,719</td>
-          <td class="weight-cell" data-sort="1.53">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:12%"></div>
-              <span class="weight-label">1.53%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="1547000.0">+1,547</td>
-          <td class="num" data-sort="1.36">1.36%</td>
-          <td class="pos" data-sort="0.17">+0.17%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6510">6510</td>
-          <td data-sort="精測">精測</td>
-          <td class="num" data-sort="930000.0">930</td>
-          <td class="weight-cell" data-sort="1.46">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:11%"></div>
-              <span class="weight-label">1.46%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.43">1.43%</td>
-          <td class="pos" data-sort="0.03">+0.03%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2303">2303</td>
-          <td data-sort="聯電">聯電</td>
-          <td class="num" data-sort="40054000.0">40,054</td>
-          <td class="weight-cell" data-sort="1.28">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:10%"></div>
-              <span class="weight-label">1.28%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="7263000.0">+7,263</td>
-          <td class="num" data-sort="1.03">1.03%</td>
-          <td class="pos" data-sort="0.25">+0.25%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3661">3661</td>
-          <td data-sort="世芯-KY">世芯-KY</td>
-          <td class="num" data-sort="738000.0">738</td>
-          <td class="weight-cell" data-sort="1.25">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:10%"></div>
-              <span class="weight-label">1.25%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.32">1.32%</td>
-          <td class="neg" data-sort="-0.07">-0.07%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6274">6274</td>
-          <td data-sort="台燿">台燿</td>
-          <td class="num" data-sort="3019000.0">3,019</td>
-          <td class="weight-cell" data-sort="1.24">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:9%"></div>
-              <span class="weight-label">1.24%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.29">1.29%</td>
-          <td class="neg" data-sort="-0.05">-0.05%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3189">3189</td>
-          <td data-sort="景碩">景碩</td>
-          <td class="num" data-sort="5358000.0">5,358</td>
-          <td class="weight-cell" data-sort="1.15">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:9%"></div>
-              <span class="weight-label">1.15%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.19">1.19%</td>
-          <td class="neg" data-sort="-0.04">-0.04%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2317">2317</td>
-          <td data-sort="鴻海">鴻海</td>
-          <td class="num" data-sort="10727000.0">10,727</td>
-          <td class="weight-cell" data-sort="1.03">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:8%"></div>
-              <span class="weight-label">1.03%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="1.05">1.05%</td>
-          <td class="neg" data-sort="-0.02">-0.02%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="8358">8358</td>
-          <td data-sort="金居">金居</td>
-          <td class="num" data-sort="5558000.0">5,558</td>
-          <td class="weight-cell" data-sort="0.85">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:6%"></div>
-              <span class="weight-label">0.85%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.8">0.8%</td>
-          <td class="pos" data-sort="0.05">+0.05%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="8210">8210</td>
-          <td data-sort="勤誠">勤誠</td>
-          <td class="num" data-sort="1117000.0">1,117</td>
-          <td class="weight-cell" data-sort="0.55">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:4%"></div>
-              <span class="weight-label">0.55%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.56">0.56%</td>
-          <td class="neg" data-sort="-0.01">-0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="5439">5439</td>
-          <td data-sort="高技">高技</td>
-          <td class="num" data-sort="3130000.0">3,130</td>
-          <td class="weight-cell" data-sort="0.53">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:4%"></div>
-              <span class="weight-label">0.53%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.5">0.5%</td>
-          <td class="pos" data-sort="0.03">+0.03%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3443">3443</td>
-          <td data-sort="創意">創意</td>
-          <td class="num" data-sort="271000.0">271</td>
-          <td class="weight-cell" data-sort="0.48">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:3%"></div>
-              <span class="weight-label">0.48%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.46">0.46%</td>
-          <td class="pos" data-sort="0.02">+0.02%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6147">6147</td>
-          <td data-sort="頎邦">頎邦</td>
-          <td class="num" data-sort="7884000.0">7,884</td>
-          <td class="weight-cell" data-sort="0.48">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:3%"></div>
-              <span class="weight-label">0.48%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.44">0.44%</td>
-          <td class="pos" data-sort="0.04">+0.04%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2404">2404</td>
-          <td data-sort="漢唐">漢唐</td>
-          <td class="num" data-sort="1091000.0">1,091</td>
-          <td class="weight-cell" data-sort="0.45">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:3%"></div>
-              <span class="weight-label">0.45%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.46">0.46%</td>
-          <td class="neg" data-sort="-0.01">-0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3264">3264</td>
-          <td data-sort="欣銓">欣銓</td>
-          <td class="num" data-sort="4897000.0">4,897</td>
-          <td class="weight-cell" data-sort="0.41">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:3%"></div>
-              <span class="weight-label">0.41%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.41">0.41%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="1590">1590</td>
-          <td data-sort="亞德客-KY">亞德客-KY</td>
-          <td class="num" data-sort="500000.0">500</td>
-          <td class="weight-cell" data-sort="0.3">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:2%"></div>
-              <span class="weight-label">0.3%</span>
-            </div>
-          </td>
-          <td class="pos badge-new" data-sort="999999">新增</td>
-          <td data-sort="0">—</td>
-          <td class="pos" data-sort="999999">新增</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="8996">8996</td>
-          <td data-sort="高力">高力</td>
-          <td class="num" data-sort="535000.0">535</td>
-          <td class="weight-cell" data-sort="0.27">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:2%"></div>
-              <span class="weight-label">0.27%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.25">0.25%</td>
-          <td class="pos" data-sort="0.02">+0.02%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="7769">7769</td>
-          <td data-sort="鴻勁">鴻勁</td>
-          <td class="num" data-sort="98000.0">98</td>
-          <td class="weight-cell" data-sort="0.21">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.21%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.21">0.21%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2337">2337</td>
-          <td data-sort="旺宏">旺宏</td>
-          <td class="num" data-sort="2910000.0">2,910</td>
-          <td class="weight-cell" data-sort="0.2">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.2%</span>
-            </div>
-          </td>
-          <td class="pos badge-new" data-sort="999999">新增</td>
-          <td data-sort="0">—</td>
-          <td class="pos" data-sort="999999">新增</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6191">6191</td>
-          <td data-sort="精成科">精成科</td>
-          <td class="num" data-sort="3986000.0">3,986</td>
-          <td class="weight-cell" data-sort="0.18">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.18%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.18">0.18%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3376">3376</td>
-          <td data-sort="新日興">新日興</td>
-          <td class="num" data-sort="1681000.0">1,681</td>
-          <td class="weight-cell" data-sort="0.15">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.15%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.15">0.15%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2481">2481</td>
-          <td data-sort="強茂">強茂</td>
-          <td class="num" data-sort="3652000.0">3,652</td>
-          <td class="weight-cell" data-sort="0.15">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.15%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.16">0.16%</td>
-          <td class="neg" data-sort="-0.01">-0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2313">2313</td>
-          <td data-sort="華通">華通</td>
-          <td class="num" data-sort="1343000.0">1,343</td>
-          <td class="weight-cell" data-sort="0.14">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:1%"></div>
-              <span class="weight-label">0.14%</span>
-            </div>
-          </td>
-          <td class="num pos" data-sort="500000.0">+500</td>
-          <td class="num" data-sort="0.09">0.09%</td>
-          <td class="pos" data-sort="0.05">+0.05%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="6415">6415</td>
-          <td data-sort="矽力*-KY">矽力*-KY</td>
-          <td class="num" data-sort="660000.0">660</td>
-          <td class="weight-cell" data-sort="0.12">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.12%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.12">0.12%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="4966">4966</td>
-          <td data-sort="譜瑞-KY">譜瑞-KY</td>
-          <td class="num" data-sort="371000.0">371</td>
-          <td class="weight-cell" data-sort="0.09">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.09%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.1">0.1%</td>
-          <td class="neg" data-sort="-0.01">-0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="3217">3217</td>
-          <td data-sort="優群">優群</td>
-          <td class="num" data-sort="830000.0">830</td>
-          <td class="weight-cell" data-sort="0.06">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.06%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.06">0.06%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="1303">1303</td>
-          <td data-sort="南亞">南亞</td>
-          <td class="num" data-sort="1374000.0">1,374</td>
-          <td class="weight-cell" data-sort="0.05">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.05%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.05">0.05%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2002">2002</td>
-          <td data-sort="中鋼">中鋼</td>
-          <td class="num" data-sort="5161000.0">5,161</td>
-          <td class="weight-cell" data-sort="0.04">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.04%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.04">0.04%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="1319">1319</td>
-          <td data-sort="東陽">東陽</td>
-          <td class="num" data-sort="509000.0">509</td>
-          <td class="weight-cell" data-sort="0.02">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.02%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.02">0.02%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="1815">1815</td>
-          <td data-sort="富喬">富喬</td>
-          <td class="num" data-sort="107000.0">107</td>
-          <td class="weight-cell" data-sort="0.01">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0.01%</span>
-            </div>
-          </td>
-          <td class="num zero" data-sort="0.0">—</td>
-          <td class="num" data-sort="0.0">0.0%</td>
-          <td class="pos" data-sort="0.01">+0.01%</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2357">2357</td>
-          <td data-sort="華碩">華碩</td>
-          <td class="num" data-sort="16000.0">16</td>
-          <td class="weight-cell" data-sort="0.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="2439">2439</td>
-          <td data-sort="美律">美律</td>
-          <td class="num" data-sort="16000.0">16</td>
-          <td class="weight-cell" data-sort="0.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="4979">4979</td>
-          <td data-sort="華星光">華星光</td>
-          <td class="num" data-sort="1000.0">1</td>
-          <td class="weight-cell" data-sort="0.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr>
-        <tr>
-          <td class="code" data-sort="5347">5347</td>
-          <td data-sort="世界">世界</td>
-          <td class="num" data-sort="62000.0">62</td>
-          <td class="weight-cell" data-sort="0.0">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:0%"></div>
-              <span class="weight-label">0%</span>
-            </div>
-          </td>
-          <td class="zero" data-sort="0">—</td>
-          <td class="num" data-sort="0.0">0%</td>
-          <td class="zero" data-sort="0">—</td>
-        </tr></tbody>
-        </table>
-      </div>
-    </section>
+  <!-- 主表格 -->
+  <section>
+    <div class="sec-header">
+      <h2>📋 今日持股 &amp; 異動</h2>
+      <span class="count" id="tbl-count">—</span>
+      <span class="hint">點擊欄位標題排序</span>
+    </div>
+    <div class="table-wrap">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th data-col="0">代號<i class="si">▲</i></th>
+            <th data-col="1">名稱<i class="si">▲</i></th>
+            <th data-col="2" class="num">今日張數<i class="si">▲</i></th>
+            <th data-col="3">持股權重<i class="si">▲</i></th>
+            <th data-col="4" class="num" id="th-chg">張數變化<i class="si">▲</i></th>
+            <th data-col="5" class="num" id="th-pw">前日權重<i class="si">▲</i></th>
+            <th data-col="6" id="th-wc">權重變化<i class="si">▲</i></th>
+          </tr>
+        </thead>
+        <tbody id="main-tbody"></tbody>
+      </table>
+    </div>
+  </section>
 
-    <section>
-      <div class="sec-header"><h2>🔴 刪除股票</h2><span class="count">2 檔</span></div>
-      <div class="table-wrap"><table><thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead><tbody><tr><td class='code'>3211</td><td>順達</td><td class='num'>458</td><td class='neg'>0.08%</td></tr><tr><td class='code'>6488</td><td>環球晶</td><td class='num'>333</td><td class='neg'>0.09%</td></tr></tbody></table></div>
-    </section>
-  </main>
-  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
+  <!-- 刪除股票 -->
+  <section id="removed-sec">
+    <div class="sec-header">
+      <h2>🔴 刪除股票</h2>
+      <span class="count" id="del-count">0 檔</span>
+    </div>
+    <div id="removed-body"></div>
+  </section>
 
-  <script>
-    (function () {
-      const table = document.getElementById('main-table');
-      const tbody = table.querySelector('tbody');
-      let sortCol = 3, sortAsc = false;
+</main>
+<footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日 18:00 自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
-      function getVal(row, col) {
-        const cell = row.cells[col];
-        const v = cell.getAttribute('data-sort');
-        if (v !== null) return isNaN(+v) ? v : +v;
-        return cell.textContent.trim();
+<script>
+(function () {
+  // ── 歷史資料（Python 嵌入）──────────────────────────────
+  const HISTORY = {"20260425": {"2330": {"name": "台積電", "shares": 9114000, "weight": 9.39}, "2383": {"name": "台光電", "shares": 4125000, "weight": 8.7}, "2308": {"name": "台達電", "shares": 6024000, "weight": 5.89}, "3653": {"name": "健策", "shares": 2267000, "weight": 5.74}, "3017": {"name": "奇鋐", "shares": 3902000, "weight": 5.42}, "3665": {"name": "貿聯-KY", "shares": 4097848, "weight": 5.34}, "2345": {"name": "智邦", "shares": 5231000, "weight": 5.28}, "2368": {"name": "金像電", "shares": 7748000, "weight": 5.08}, "8046": {"name": "南電", "shares": 11881000, "weight": 4.9}, "2454": {"name": "聯發科", "shares": 3867000, "weight": 4.44}, "6223": {"name": "旺矽", "shares": 1774000, "weight": 3.89}, "3037": {"name": "欣興", "shares": 9287000, "weight": 3.46}, "5274": {"name": "信驊", "shares": 351000, "weight": 2.71}, "6669": {"name": "緯穎", "shares": 1101000, "weight": 2.41}, "2327": {"name": "國巨*", "shares": 14288000, "weight": 2.0}, "3711": {"name": "日月光投控", "shares": 7654000, "weight": 1.79}, "6515": {"name": "穎崴", "shares": 368000, "weight": 1.75}, "6805": {"name": "富世達", "shares": 1698000, "weight": 1.53}, "6510": {"name": "精測", "shares": 875000, "weight": 1.5}, "6274": {"name": "台燿", "shares": 3019000, "weight": 1.49}, "2449": {"name": "京元電子", "shares": 10503000, "weight": 1.42}, "3661": {"name": "世芯-KY", "shares": 694000, "weight": 1.38}, "3189": {"name": "景碩", "shares": 5038000, "weight": 1.25}, "2303": {"name": "聯電", "shares": 30837000, "weight": 1.08}, "8358": {"name": "金居", "shares": 5558000, "weight": 0.94}, "2317": {"name": "鴻海", "shares": 6927000, "weight": 0.72}, "8210": {"name": "勤誠", "shares": 1051000, "weight": 0.6}, "6147": {"name": "頎邦", "shares": 7884000, "weight": 0.54}, "3443": {"name": "創意", "shares": 271000, "weight": 0.52}, "2404": {"name": "漢唐", "shares": 1091000, "weight": 0.51}, "5439": {"name": "高技", "shares": 2880000, "weight": 0.5}, "3264": {"name": "欣銓", "shares": 4896000, "weight": 0.48}, "8996": {"name": "高力", "shares": 535000, "weight": 0.28}, "7769": {"name": "鴻勁", "shares": 97000, "weight": 0.22}, "6191": {"name": "精成科", "shares": 3985000, "weight": 0.2}, "2481": {"name": "強茂", "shares": 3651000, "weight": 0.17}, "3211": {"name": "順達", "shares": 916000, "weight": 0.16}, "3376": {"name": "新日興", "shares": 1561000, "weight": 0.16}, "6415": {"name": "矽力*-KY", "shares": 660000, "weight": 0.14}, "4966": {"name": "譜瑞-KY", "shares": 370000, "weight": 0.11}, "3324": {"name": "雙鴻", "shares": 170000, "weight": 0.1}, "6488": {"name": "環球晶", "shares": 332000, "weight": 0.09}, "2313": {"name": "華通", "shares": 764000, "weight": 0.08}, "3217": {"name": "優群", "shares": 780000, "weight": 0.07}, "1303": {"name": "南亞", "shares": 1373000, "weight": 0.06}, "2002": {"name": "中鋼", "shares": 5160000, "weight": 0.05}, "1319": {"name": "東陽", "shares": 508000, "weight": 0.02}, "1815": {"name": "富喬", "shares": 107000, "weight": 0.01}, "2357": {"name": "華碩", "shares": 15000, "weight": 0.0}, "2439": {"name": "美律", "shares": 15000, "weight": 0.0}, "4979": {"name": "華星光", "shares": 1000, "weight": 0.0}, "5347": {"name": "世界", "shares": 61000, "weight": 0.0}}, "20260426": {"2330": {"name": "台積電", "shares": 9114000, "weight": 9.39}, "2383": {"name": "台光電", "shares": 4125000, "weight": 8.7}, "2308": {"name": "台達電", "shares": 6024000, "weight": 5.89}, "3653": {"name": "健策", "shares": 2267000, "weight": 5.74}, "3017": {"name": "奇鋐", "shares": 3902000, "weight": 5.42}, "3665": {"name": "貿聯-KY", "shares": 4097848, "weight": 5.34}, "2345": {"name": "智邦", "shares": 5231000, "weight": 5.28}, "2368": {"name": "金像電", "shares": 7748000, "weight": 5.08}, "8046": {"name": "南電", "shares": 11881000, "weight": 4.9}, "2454": {"name": "聯發科", "shares": 3867000, "weight": 4.44}, "6223": {"name": "旺矽", "shares": 1774000, "weight": 3.89}, "3037": {"name": "欣興", "shares": 9287000, "weight": 3.46}, "5274": {"name": "信驊", "shares": 351000, "weight": 2.71}, "6669": {"name": "緯穎", "shares": 1101000, "weight": 2.41}, "2327": {"name": "國巨*", "shares": 14288000, "weight": 2.0}, "3711": {"name": "日月光投控", "shares": 7654000, "weight": 1.79}, "6515": {"name": "穎崴", "shares": 368000, "weight": 1.75}, "6805": {"name": "富世達", "shares": 1698000, "weight": 1.53}, "6510": {"name": "精測", "shares": 875000, "weight": 1.5}, "6274": {"name": "台燿", "shares": 3019000, "weight": 1.49}, "2449": {"name": "京元電子", "shares": 10503000, "weight": 1.42}, "3661": {"name": "世芯-KY", "shares": 694000, "weight": 1.38}, "3189": {"name": "景碩", "shares": 5038000, "weight": 1.25}, "2303": {"name": "聯電", "shares": 30837000, "weight": 1.08}, "8358": {"name": "金居", "shares": 5558000, "weight": 0.94}, "2317": {"name": "鴻海", "shares": 6927000, "weight": 0.72}, "8210": {"name": "勤誠", "shares": 1051000, "weight": 0.6}, "6147": {"name": "頎邦", "shares": 7884000, "weight": 0.54}, "3443": {"name": "創意", "shares": 271000, "weight": 0.52}, "2404": {"name": "漢唐", "shares": 1091000, "weight": 0.51}, "5439": {"name": "高技", "shares": 2880000, "weight": 0.5}, "3264": {"name": "欣銓", "shares": 4896000, "weight": 0.48}, "8996": {"name": "高力", "shares": 535000, "weight": 0.28}, "7769": {"name": "鴻勁", "shares": 97000, "weight": 0.22}, "6191": {"name": "精成科", "shares": 3985000, "weight": 0.2}, "2481": {"name": "強茂", "shares": 3651000, "weight": 0.17}, "3211": {"name": "順達", "shares": 916000, "weight": 0.16}, "3376": {"name": "新日興", "shares": 1561000, "weight": 0.16}, "6415": {"name": "矽力*-KY", "shares": 660000, "weight": 0.14}, "4966": {"name": "譜瑞-KY", "shares": 370000, "weight": 0.11}, "3324": {"name": "雙鴻", "shares": 170000, "weight": 0.1}, "6488": {"name": "環球晶", "shares": 332000, "weight": 0.09}, "2313": {"name": "華通", "shares": 764000, "weight": 0.08}, "3217": {"name": "優群", "shares": 780000, "weight": 0.07}, "1303": {"name": "南亞", "shares": 1373000, "weight": 0.06}, "2002": {"name": "中鋼", "shares": 5160000, "weight": 0.05}, "1319": {"name": "東陽", "shares": 508000, "weight": 0.02}, "1815": {"name": "富喬", "shares": 107000, "weight": 0.01}, "2357": {"name": "華碩", "shares": 15000, "weight": 0.0}, "2439": {"name": "美律", "shares": 15000, "weight": 0.0}, "4979": {"name": "華星光", "shares": 1000, "weight": 0.0}, "5347": {"name": "世界", "shares": 61000, "weight": 0.0}}, "20260427": {"2330": {"name": "台積電", "shares": 9693000, "weight": 9.46}, "2383": {"name": "台光電", "shares": 4425000, "weight": 9.02}, "2345": {"name": "智邦", "shares": 6031000, "weight": 5.65}, "2308": {"name": "台達電", "shares": 6024000, "weight": 5.24}, "2368": {"name": "金像電", "shares": 8240000, "weight": 5.04}, "8046": {"name": "南電", "shares": 12637000, "weight": 4.97}, "3665": {"name": "貿聯-KY", "shares": 4377848, "weight": 4.96}, "3653": {"name": "健策", "shares": 2267000, "weight": 4.84}, "3017": {"name": "奇鋐", "shares": 3902000, "weight": 4.77}, "2454": {"name": "聯發科", "shares": 4147000, "weight": 4.35}, "6223": {"name": "旺矽", "shares": 1886000, "weight": 3.96}, "3037": {"name": "欣興", "shares": 9287000, "weight": 3.36}, "6669": {"name": "緯穎", "shares": 1549000, "weight": 3.26}, "5274": {"name": "信驊", "shares": 373000, "weight": 2.57}, "2327": {"name": "國巨*", "shares": 15196000, "weight": 2.0}, "6805": {"name": "富世達", "shares": 2099000, "weight": 1.87}, "3711": {"name": "日月光投控", "shares": 8174000, "weight": 1.74}, "6515": {"name": "穎崴", "shares": 391000, "weight": 1.61}, "6510": {"name": "精測", "shares": 930000, "weight": 1.43}, "2449": {"name": "京元電子", "shares": 11172000, "weight": 1.36}, "3661": {"name": "世芯-KY", "shares": 738000, "weight": 1.32}, "6274": {"name": "台燿", "shares": 3019000, "weight": 1.29}, "3189": {"name": "景碩", "shares": 5358000, "weight": 1.19}, "2317": {"name": "鴻海", "shares": 10727000, "weight": 1.05}, "2303": {"name": "聯電", "shares": 32791000, "weight": 1.03}, "8358": {"name": "金居", "shares": 5558000, "weight": 0.8}, "8210": {"name": "勤誠", "shares": 1117000, "weight": 0.56}, "5439": {"name": "高技", "shares": 3130000, "weight": 0.5}, "3443": {"name": "創意", "shares": 271000, "weight": 0.46}, "2404": {"name": "漢唐", "shares": 1091000, "weight": 0.46}, "6147": {"name": "頎邦", "shares": 7884000, "weight": 0.44}, "3264": {"name": "欣銓", "shares": 4897000, "weight": 0.41}, "8996": {"name": "高力", "shares": 535000, "weight": 0.25}, "7769": {"name": "鴻勁", "shares": 98000, "weight": 0.21}, "6191": {"name": "精成科", "shares": 3986000, "weight": 0.18}, "2481": {"name": "強茂", "shares": 3652000, "weight": 0.16}, "3376": {"name": "新日興", "shares": 1681000, "weight": 0.15}, "6415": {"name": "矽力*-KY", "shares": 660000, "weight": 0.12}, "4966": {"name": "譜瑞-KY", "shares": 371000, "weight": 0.1}, "6488": {"name": "環球晶", "shares": 333000, "weight": 0.09}, "2313": {"name": "華通", "shares": 843000, "weight": 0.09}, "3211": {"name": "順達", "shares": 458000, "weight": 0.08}, "3217": {"name": "優群", "shares": 830000, "weight": 0.06}, "1303": {"name": "南亞", "shares": 1374000, "weight": 0.05}, "2002": {"name": "中鋼", "shares": 5161000, "weight": 0.04}, "1319": {"name": "東陽", "shares": 509000, "weight": 0.02}, "2357": {"name": "華碩", "shares": 16000, "weight": 0.0}, "1815": {"name": "富喬", "shares": 107000, "weight": 0.0}, "2439": {"name": "美律", "shares": 16000, "weight": 0.0}, "4979": {"name": "華星光", "shares": 1000, "weight": 0.0}, "5347": {"name": "世界", "shares": 62000, "weight": 0.0}}, "20260428": {"2330": {"name": "台積電", "shares": 9693000, "weight": 9.11}, "2383": {"name": "台光電", "shares": 4425000, "weight": 8.21}, "2345": {"name": "智邦", "shares": 6031000, "weight": 5.87}, "2308": {"name": "台達電", "shares": 6024000, "weight": 5.43}, "8046": {"name": "南電", "shares": 12637000, "weight": 5.0}, "3665": {"name": "貿聯-KY", "shares": 4377848, "weight": 4.88}, "2368": {"name": "金像電", "shares": 8240000, "weight": 4.86}, "2454": {"name": "聯發科", "shares": 4363000, "weight": 4.84}, "3653": {"name": "健策", "shares": 2267000, "weight": 4.76}, "3017": {"name": "奇鋐", "shares": 3902000, "weight": 4.6}, "6223": {"name": "旺矽", "shares": 1886000, "weight": 3.9}, "6669": {"name": "緯穎", "shares": 1635000, "weight": 3.33}, "3037": {"name": "欣興", "shares": 9287000, "weight": 3.25}, "5274": {"name": "信驊", "shares": 373000, "weight": 2.55}, "2327": {"name": "國巨*", "shares": 16954000, "weight": 2.35}, "3711": {"name": "日月光投控", "shares": 9536000, "weight": 2.0}, "6805": {"name": "富世達", "shares": 2099000, "weight": 1.86}, "6515": {"name": "穎崴", "shares": 391000, "weight": 1.68}, "2449": {"name": "京元電子", "shares": 12719000, "weight": 1.53}, "6510": {"name": "精測", "shares": 930000, "weight": 1.46}, "2303": {"name": "聯電", "shares": 40054000, "weight": 1.28}, "3661": {"name": "世芯-KY", "shares": 738000, "weight": 1.25}, "6274": {"name": "台燿", "shares": 3019000, "weight": 1.24}, "3189": {"name": "景碩", "shares": 5358000, "weight": 1.15}, "2317": {"name": "鴻海", "shares": 10727000, "weight": 1.03}, "8358": {"name": "金居", "shares": 5558000, "weight": 0.85}, "8210": {"name": "勤誠", "shares": 1117000, "weight": 0.55}, "5439": {"name": "高技", "shares": 3130000, "weight": 0.53}, "3443": {"name": "創意", "shares": 271000, "weight": 0.48}, "6147": {"name": "頎邦", "shares": 7884000, "weight": 0.48}, "2404": {"name": "漢唐", "shares": 1091000, "weight": 0.45}, "3264": {"name": "欣銓", "shares": 4897000, "weight": 0.41}, "1590": {"name": "亞德客-KY", "shares": 500000, "weight": 0.3}, "8996": {"name": "高力", "shares": 535000, "weight": 0.27}, "7769": {"name": "鴻勁", "shares": 98000, "weight": 0.21}, "2337": {"name": "旺宏", "shares": 2910000, "weight": 0.2}, "6191": {"name": "精成科", "shares": 3986000, "weight": 0.18}, "3376": {"name": "新日興", "shares": 1681000, "weight": 0.15}, "2481": {"name": "強茂", "shares": 3652000, "weight": 0.15}, "2313": {"name": "華通", "shares": 1343000, "weight": 0.14}, "6415": {"name": "矽力*-KY", "shares": 660000, "weight": 0.12}, "4966": {"name": "譜瑞-KY", "shares": 371000, "weight": 0.09}, "3217": {"name": "優群", "shares": 830000, "weight": 0.06}, "1303": {"name": "南亞", "shares": 1374000, "weight": 0.05}, "2002": {"name": "中鋼", "shares": 5161000, "weight": 0.04}, "1319": {"name": "東陽", "shares": 509000, "weight": 0.02}, "1815": {"name": "富喬", "shares": 107000, "weight": 0.01}, "2357": {"name": "華碩", "shares": 16000, "weight": 0.0}, "2439": {"name": "美律", "shares": 16000, "weight": 0.0}, "4979": {"name": "華星光", "shares": 1000, "weight": 0.0}, "5347": {"name": "世界", "shares": 62000, "weight": 0.0}}};
+  const DATES   = ["20260425", "20260426", "20260427", "20260428"];  // ascending
+
+  // ── 工具函式 ─────────────────────────────────────────────
+  function dateLabel(d) {
+    return d.slice(0,4) + '/' + d.slice(4,6) + '/' + d.slice(6,8);
+  }
+  function toZhang(shares) { return Math.floor(shares / 1000); }
+  function fmtN(n) { return n.toLocaleString('zh-TW'); }
+  function fmtDiff(n) {
+    if (n === 0) return '—';
+    return (n > 0 ? '+' : '') + fmtN(n);
+  }
+  function fmtW(w) {
+    if (w === null || w === undefined) return '—';
+    return w.toFixed(2) + '%';
+  }
+  function fmtWDiff(w) {
+    if (w === 0) return '—';
+    return (w > 0 ? '+' : '') + w.toFixed(2) + '%';
+  }
+  function cls(n) {
+    if (n > 0) return 'pos'; if (n < 0) return 'neg'; return 'zero';
+  }
+
+  // ── 連續買賣計算（全歷史）───────────────────────────────
+  function computeStreaks() {
+    const all = {};
+    DATES.forEach(d => Object.keys(HISTORY[d] || {}).forEach(c => (all[c] = true)));
+    const streaks = {};
+    for (const code of Object.keys(all)) {
+      let count = 0, dir = null;
+      for (let i = 1; i < DATES.length; i++) {
+        const p = HISTORY[DATES[i-1]]?.[code];
+        const c = HISTORY[DATES[i]]?.[code];
+        if (!p || !c) { count = 0; dir = null; continue; }
+        const diff = c.shares - p.shares;
+        const d = diff > 0 ? 'buy' : diff < 0 ? 'sell' : null;
+        if (!d) { count = 0; dir = null; }
+        else if (d === dir) { count++; }
+        else { count = 1; dir = d; }
       }
+      if (count >= 1 && dir) streaks[code] = { dir, count };
+    };
+    return streaks;
+  }
 
-      function sortTable(col, asc) {
-        const rows = Array.from(tbody.rows);
-        rows.sort((a, b) => {
-          const va = getVal(a, col), vb = getVal(b, col);
-          if (typeof va === 'number' && typeof vb === 'number') return asc ? va - vb : vb - va;
-          return asc ? String(va).localeCompare(String(vb), 'zh-Hant') : String(vb).localeCompare(String(va), 'zh-Hant');
-        });
-        rows.forEach(r => tbody.appendChild(r));
-      }
+  // ── 比較兩個日期 ─────────────────────────────────────────
+  function compare(startDate, endDate) {
+    const start = HISTORY[startDate] || {};
+    const end   = HISTORY[endDate]   || {};
+    const allCodes = new Set([...Object.keys(start), ...Object.keys(end)]);
+    const result = { added: [], removed: [], rows: [] };
 
-      function updateHeaders(activeCol, asc) {
-        table.querySelectorAll('th.sortable').forEach((th, i) => {
-          th.classList.remove('asc', 'desc');
-          if (i === activeCol) th.classList.add(asc ? 'asc' : 'desc');
-        });
-      }
-
-      table.querySelectorAll('th.sortable').forEach((th, i) => {
-        th.addEventListener('click', () => {
-          if (sortCol === i) {
-            sortAsc = !sortAsc;
-          } else {
-            sortCol = i;
-            sortAsc = th.dataset.defaultDesc !== 'true';
-          }
-          sortTable(sortCol, sortAsc);
-          updateHeaders(sortCol, sortAsc);
-        });
+    for (const code of allCodes) {
+      const s = start[code], e = end[code];
+      if (!s && e)  { result.added.push({ code, ...e }); continue; }
+      if (s && !e)  { result.removed.push({ code, ...s }); continue; }
+      const sharesDiff = e.shares - s.shares;
+      const weightDiff = parseFloat((e.weight - s.weight).toFixed(2));
+      result.rows.push({
+        code, name: e.name,
+        shares: e.shares, weight: e.weight,
+        prevShares: s.shares, prevWeight: s.weight,
+        sharesDiff, weightDiff,
+        changed: sharesDiff !== 0 || weightDiff !== 0,
       });
+    }
+    return result;
+  }
 
-      sortTable(sortCol, sortAsc);
-      updateHeaders(sortCol, sortAsc);
-    })();
-  </script>
+  // ── 渲染連續動態 ─────────────────────────────────────────
+  function renderStreaks(streaks) {
+    const buys  = Object.entries(streaks).filter(([,v]) => v.dir==='buy' && v.count>=2)
+                    .sort((a,b) => b[1].count - a[1].count);
+    const sells = Object.entries(streaks).filter(([,v]) => v.dir==='sell' && v.count>=2)
+                    .sort((a,b) => b[1].count - a[1].count);
+
+    const body = document.getElementById('streak-body');
+    const lastDay = HISTORY[DATES[DATES.length-1]] || {};
+
+    function chips(list, cls) {
+      if (!list.length) return `<span class="streak-empty">無</span>`;
+      return list.map(([code, v]) => {
+        const name = lastDay[code]?.name || HISTORY[DATES[0]]?.[code]?.name || '';
+        const label = v.dir==='buy' ? `連${v.count}買` : `連${v.count}賣`;
+        return `<span class="chip chip-${v.dir==='buy'?'buy':'sell'}">
+          <span class="chip-code">${code}</span>
+          <span class="chip-name">${name}</span>
+          <strong>${label}</strong>
+        </span>`;
+      }).join('');
+    }
+
+    body.innerHTML = `
+      <div class="streak-row">
+        <span class="streak-label">📈 連續買進</span>
+        <div class="streak-chips">${chips(buys,'buy')}</div>
+      </div>
+      <div class="streak-row">
+        <span class="streak-label">📉 連續賣出</span>
+        <div class="streak-chips">${chips(sells,'sell')}</div>
+      </div>`;
+  }
+
+  // ── 渲染主表格 ───────────────────────────────────────────
+  let sortCol = 3, sortAsc = false;
+
+  function renderTable(cmp, streaks, isMulti) {
+    // 欄位可見性
+    document.getElementById('th-chg').textContent = isMulti ? '累計張數變化' : '張數變化';
+    document.getElementById('th-chg').appendChild((() => { const i=document.createElement('i'); i.className='si'; i.textContent='▲'; return i; })());
+    const thPw = document.getElementById('th-pw');
+    const thWc = document.getElementById('th-wc');
+    thPw.classList.toggle('hidden', isMulti);
+    thWc.classList.toggle('hidden', isMulti);
+
+    // 組合所有行：added + rows（含 changed 與 unchanged）
+    const lastDay = HISTORY[DATES[DATES.length-1]] || {};
+    const addedCodes = new Set(cmp.added.map(r => r.code));
+    const allRows = [
+      ...cmp.added.map(r => ({ ...r, isAdded: true, sharesDiff: r.shares, weightDiff: r.weight })),
+      ...cmp.rows,
+    ];
+
+    // 排序
+    function getVal(row) {
+      switch (sortCol) {
+        case 0: return row.code;
+        case 1: return row.name;
+        case 2: return toZhang(row.shares);
+        case 3: return row.weight;
+        case 4: return row.isAdded ? 1e9 : row.sharesDiff;
+        case 5: return row.isAdded ? 1e9 : (row.prevWeight ?? 0);
+        case 6: return row.isAdded ? 1e9 : row.weightDiff;
+        default: return 0;
+      }
+    }
+    allRows.sort((a, b) => {
+      const va = getVal(a), vb = getVal(b);
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb,'zh-Hant') : vb.localeCompare(va,'zh-Hant');
+      return sortAsc ? va - vb : vb - va;
+    });
+
+    const tbody = document.getElementById('main-tbody');
+    tbody.innerHTML = allRows.map(row => {
+      const zhang = toZhang(row.shares);
+      const barW  = Math.min(Math.floor(row.weight * 8), 100);
+      const stk   = streaks[row.code];
+      const stkTag = (stk && stk.count >= 2)
+        ? `<span class="streak-tag ${stk.dir==='buy'?'buy':'sell'}">連${stk.count}${stk.dir==='buy'?'買':'賣'}</span>`
+        : '';
+
+      // 張數變化欄
+      let chgCell;
+      if (row.isAdded) {
+        chgCell = `<td class="num" data-sort="1000000"><span class="badge-new">新增</span></td>`;
+      } else {
+        const zdiff = toZhang(Math.abs(row.sharesDiff)) * Math.sign(row.sharesDiff);
+        const zdiffTxt = fmtDiff(zdiff);
+        chgCell = `<td class="num ${cls(zdiff)}" data-sort="${zdiff}">${zdiffTxt}${stkTag}</td>`;
+      }
+
+      // 前日權重 & 權重變化（單日模式才顯示）
+      const pwCell = `<td class="num ${isMulti?'hidden':''}" data-sort="${row.prevWeight??0}">${row.isAdded ? '—' : fmtW(row.prevWeight)}</td>`;
+      const wcCell = `<td class="${isMulti?'hidden':''} ${row.isAdded?'':cls(row.weightDiff)}" data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : fmtWDiff(row.weightDiff)}</td>`;
+
+      return `<tr>
+        <td class="code" data-sort="${row.code}">${row.code}</td>
+        <td data-sort="${row.name}">${row.name}</td>
+        <td class="num" data-sort="${zhang}">${fmtN(zhang)}</td>
+        <td data-sort="${row.weight}">
+          <div class="w-wrap">
+            <div class="w-bar" style="width:${barW}%"></div>
+            <span class="w-lbl">${row.weight.toFixed(2)}%</span>
+          </div>
+        </td>
+        ${chgCell}${pwCell}${wcCell}
+      </tr>`;
+    }).join('');
+
+    document.getElementById('tbl-count').textContent = allRows.length + ' 檔';
+    updateSortHeaders();
+  }
+
+  // ── 渲染刪除區塊 ─────────────────────────────────────────
+  function renderRemoved(removed) {
+    const el = document.getElementById('removed-body');
+    document.getElementById('del-count').textContent = removed.length + ' 檔';
+    if (!removed.length) { el.innerHTML = "<p class='empty'>無刪除股票</p>"; return; }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead>
+      <tbody>${removed.map(r => `<tr>
+        <td class="code">${r.code}</td><td>${r.name}</td>
+        <td class="num neg">${fmtN(toZhang(r.shares))}</td>
+        <td class="neg">${r.weight.toFixed(2)}%</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  // ── 排序邏輯 ─────────────────────────────────────────────
+  function updateSortHeaders() {
+    document.querySelectorAll('#main-table th').forEach((th, i) => {
+      th.classList.remove('asc','desc');
+      if (i === sortCol) th.classList.add(sortAsc ? 'asc' : 'desc');
+    });
+  }
+
+  document.getElementById('main-table').addEventListener('click', e => {
+    const th = e.target.closest('th');
+    if (!th) return;
+    const col = parseInt(th.dataset.col);
+    if (isNaN(col)) return;
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = col <= 1; }  // 文字欄預設升冪，數值欄降冪
+    refresh();
+  });
+
+  // ── 主流程 ───────────────────────────────────────────────
+  const streaks = computeStreaks();
+
+  function populateSelects() {
+    const ss = document.getElementById('sel-start');
+    const se = document.getElementById('sel-end');
+    DATES.forEach(d => {
+      ss.appendChild(Object.assign(document.createElement('option'), { value: d, textContent: dateLabel(d) }));
+      se.appendChild(Object.assign(document.createElement('option'), { value: d, textContent: dateLabel(d) }));
+    });
+    // 預設：前一天 → 最新
+    if (DATES.length >= 2) ss.value = DATES[DATES.length - 2];
+    se.value = DATES[DATES.length - 1];
+  }
+
+  function refresh() {
+    const sd = document.getElementById('sel-start').value;
+    const ed = document.getElementById('sel-end').value;
+    const isMulti = DATES.indexOf(ed) - DATES.indexOf(sd) > 1;
+    const cmp = compare(sd, ed);
+
+    // mode badge
+    const mb = document.getElementById('mode-badge');
+    mb.textContent = isMulti ? '多日累計' : '單日';
+    mb.className = 'mode-badge ' + (isMulti ? 'mode-multi' : 'mode-single');
+
+    // cards
+    const total = cmp.rows.length + cmp.added.length;
+    const changed = cmp.rows.filter(r => r.changed).length;
+    document.getElementById('c-total').textContent = total;
+    document.getElementById('c-add').textContent   = cmp.added.length;
+    document.getElementById('c-del').textContent   = cmp.removed.length;
+    document.getElementById('c-chg').textContent   = changed;
+    document.getElementById('c-range').textContent = dateLabel(sd) + ' → ' + dateLabel(ed);
+
+    renderTable(cmp, streaks, isMulti);
+    renderRemoved(cmp.removed);
+  }
+
+  document.getElementById('sel-start').addEventListener('change', refresh);
+  document.getElementById('sel-end').addEventListener('change', refresh);
+
+  populateSelects();
+  renderStreaks(streaks);
+  refresh();
+})();
+</script>
 </body>
 </html>

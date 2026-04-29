@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import csv, os, glob, re
+import csv, os, glob, json
 from datetime import datetime
 
 DATA_DIR = "data"
@@ -7,211 +7,49 @@ REPORT_DIR = "reports"
 OUTPUT_FILE = "index.html"
 
 
-def load_csv(filepath):
-    result = []
-    with open(filepath, newline="", encoding="utf-8-sig") as f:
-        for row in csv.DictReader(f):
-            result.append({
-                "code": row["股票代號"].strip(),
-                "name": row["股票名稱"].strip(),
-                "shares": row["股數"].strip(),
-                "weight": row["持股權重"].strip(),
-            })
-    return result
-
-
 def find_sorted_files():
     files = glob.glob(os.path.join(DATA_DIR, "49YTW_portfolio_????????.csv"))
-    files.sort(reverse=True)
+    files.sort()
     return files
 
 
-def parse_date_label(date_str):
-    return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}"
+def parse_date_str(filepath):
+    return os.path.basename(filepath).replace("49YTW_portfolio_", "").replace(".csv", "")
 
 
-def split_sections(content):
-    """Split markdown into sections by ## heading, return dict {heading_text: body_text}."""
-    parts = re.split(r"(?m)^## ", content)
-    result = {}
-    for part in parts[1:]:
-        lines = part.split("\n", 1)
-        heading = lines[0].strip()
-        body = lines[1] if len(lines) > 1 else ""
-        result[heading] = body
-    return result
-
-
-def parse_table_rows(text, num_cols):
-    """Parse markdown table rows (skip header and separator lines), return list of cell lists."""
-    rows = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line.startswith("|"):
-            continue
-        cells = [c.strip() for c in line.strip("|").split("|")]
-        if len(cells) < num_cols:
-            continue
-        # Skip separator lines (cells are all dashes)
-        if all(re.fullmatch(r"-+", c) for c in cells if c):
-            continue
-        # Skip header lines (first cell is Chinese header like 股票代號)
-        if re.search(r"[一-鿿]", cells[0]):
-            continue
-        # Skip if first cell doesn't look like a stock code (digits only)
-        if not re.fullmatch(r"\d+", cells[0]):
-            continue
-        rows.append(cells)
-    return rows
-
-
-def load_latest_diff_md():
-    path = os.path.join(REPORT_DIR, "latest_diff.md")
-    if not os.path.exists(path):
-        return None, None, None, [], [], []
-    with open(path, encoding="utf-8") as f:
-        content = f.read()
-
-    date_match = re.search(r"比較區間：\*\*\s*([\d/]+)\s*→\s*([\d/]+)", content)
-    time_match = re.search(r"產生時間：\*\*\s*(.+)", content)
-    prev_date = date_match.group(1) if date_match else ""
-    today_date = date_match.group(2) if date_match else ""
-    gen_time = time_match.group(1).strip() if time_match else ""
-
-    sections = split_sections(content)
-
-    added_rows = []
-    for heading, body in sections.items():
-        if "新增股票" in heading:
-            for cells in parse_table_rows(body, 4):
-                added_rows.append({"code": cells[0], "name": cells[1], "shares": cells[2], "weight": cells[3]})
-
-    removed_rows = []
-    for heading, body in sections.items():
-        if "刪除股票" in heading:
-            for cells in parse_table_rows(body, 4):
-                removed_rows.append({"code": cells[0], "name": cells[1], "shares": cells[2], "weight": cells[3]})
-
-    changed_rows = []
-    for heading, body in sections.items():
-        if "持股異動" in heading:
-            for cells in parse_table_rows(body, 8):
-                wc_str = cells[7].replace("%", "").strip()
+def load_all_csvs():
+    """Return {date_str: {code: {name, shares, weight}}} sorted by date asc."""
+    history = {}
+    for f in find_sorted_files():
+        date = parse_date_str(f)
+        day = {}
+        with open(f, newline="", encoding="utf-8-sig") as fp:
+            for row in csv.DictReader(fp):
+                code = row["股票代號"].strip()
                 try:
-                    wc = float(wc_str)
+                    shares = int(row["股數"].strip().replace(",", ""))
+                    weight = float(row["持股權重"].strip().replace("%", ""))
                 except ValueError:
-                    wc = 0.0
-                changed_rows.append({
-                    "code": cells[0],
-                    "name": cells[1],
-                    "prev_shares": cells[2],
-                    "today_shares": cells[3],
-                    "shares_diff": cells[4],
-                    "prev_weight": cells[5],
-                    "today_weight": cells[6],
-                    "weight_change": cells[7],
-                    "wc_val": wc,
-                })
-
-    return prev_date, today_date, gen_time, added_rows, removed_rows, changed_rows
+                    continue
+                day[code] = {"name": row["股票名稱"].strip(), "shares": shares, "weight": weight}
+        history[date] = day
+    return history
 
 
-def to_num(s):
-    try:
-        return float(str(s).replace(",", "").replace("%", "").replace("+", ""))
-    except (ValueError, AttributeError):
-        return 0.0
+def get_latest_date_label(history):
+    dates = sorted(history.keys())
+    if not dates:
+        return ""
+    d = dates[-1]
+    return f"{d[:4]}/{d[4:6]}/{d[6:]}"
 
 
-def to_zhang(shares_str):
-    """Convert share count string to 張 (÷1000)."""
-    try:
-        n = int(str(shares_str).replace(",", ""))
-        return f"{n // 1000:,}"
-    except (ValueError, AttributeError):
-        return shares_str
-
-
-def to_zhang_diff(diff_str):
-    """Convert share diff string like +448000 or -458000 to 張."""
-    s = str(diff_str).strip()
-    if s in ("0", "—", ""):
-        return "—"
-    sign = ""
-    num = s
-    if s.startswith("+"):
-        sign, num = "+", s[1:]
-    elif s.startswith("-"):
-        sign, num = "-", s[1:]
-    try:
-        n = int(num.replace(",", ""))
-        zhang = n // 1000
-        if zhang == 0:
-            return "—"
-        return f"{sign}{zhang:,}"
-    except ValueError:
-        return s
-
-
-def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_rows, changed_rows):
-    date_label = today_date or parse_date_label(datetime.now().strftime("%Y%m%d"))
-    total = len(portfolio)
-
-    changed_by_code = {r["code"]: r for r in changed_rows}
-    added_codes = {r["code"] for r in added_rows}
-
-    merged_rows = ""
-    for row in portfolio:
-        code = row["code"]
-        chg = changed_by_code.get(code)
-        w = to_num(row["weight"])
-        bar_width = min(int(w * 8), 100)
-        zhang = to_zhang(row["shares"])
-        shares_num = to_num(row["shares"])
-
-        if chg:
-            sd_raw = to_num(chg["shares_diff"])
-            sd_cls = "pos" if sd_raw > 0 else ("neg" if sd_raw < 0 else "zero")
-            sd_zhang = to_zhang_diff(chg["shares_diff"])
-            shares_diff_cell = f'<td class="num {sd_cls}" data-sort="{sd_raw}">{sd_zhang}</td>'
-            prev_w_raw = to_num(chg["prev_weight"])
-            prev_weight_cell = f'<td class="num" data-sort="{prev_w_raw}">{chg["prev_weight"]}</td>'
-            wc_raw = chg["wc_val"]
-            wc_cls = "pos" if wc_raw > 0 else ("neg" if wc_raw < 0 else "zero")
-            weight_change_cell = f'<td class="{wc_cls}" data-sort="{wc_raw}">{chg["weight_change"]}</td>'
-        elif code in added_codes:
-            shares_diff_cell = '<td class="pos badge-new" data-sort="999999">新增</td>'
-            prev_weight_cell = '<td data-sort="0">—</td>'
-            weight_change_cell = '<td class="pos" data-sort="999999">新增</td>'
-        else:
-            shares_diff_cell = '<td class="zero" data-sort="0">—</td>'
-            prev_weight_cell = f'<td class="num" data-sort="{w}">{row["weight"]}</td>'
-            weight_change_cell = '<td class="zero" data-sort="0">—</td>'
-
-        merged_rows += f"""
-        <tr>
-          <td class="code" data-sort="{code}">{code}</td>
-          <td data-sort="{row['name']}">{row['name']}</td>
-          <td class="num" data-sort="{shares_num}">{zhang}</td>
-          <td class="weight-cell" data-sort="{w}">
-            <div class="weight-bar-wrap">
-              <div class="weight-bar" style="width:{bar_width}%"></div>
-              <span class="weight-label">{row['weight']}</span>
-            </div>
-          </td>
-          {shares_diff_cell}
-          {prev_weight_cell}
-          {weight_change_cell}
-        </tr>"""
-
-    def removed_table(rows):
-        if not rows:
-            return "<p class='empty'>無刪除股票</p>"
-        s = "<table><thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead><tbody>"
-        for r in rows:
-            s += (f"<tr><td class='code'>{r['code']}</td><td>{r['name']}</td>"
-                  f"<td class='num'>{to_zhang(r['shares'])}</td><td class='neg'>{r['weight']}</td></tr>")
-        return s + "</tbody></table>"
+def build_html(history):
+    dates = sorted(history.keys())
+    latest = dates[-1] if dates else ""
+    date_label = f"{latest[:4]}/{latest[4:6]}/{latest[6:]}" if latest else ""
+    history_json = json.dumps(history, ensure_ascii=False)
+    dates_json = json.dumps(dates)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -222,160 +60,443 @@ def build_html(portfolio, prev_date, today_date, gen_time, added_rows, removed_r
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }}
-    header {{ background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 24px 32px; }}
-    header h1 {{ font-size: 1.6rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.02em; }}
-    header p {{ color: #94a3b8; font-size: 0.85rem; margin-top: 4px; }}
-    .badge {{ display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; margin-left: 10px; vertical-align: middle; }}
-    main {{ max-width: 1200px; margin: 0 auto; padding: 28px 20px; }}
-    .cards {{ display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }}
-    .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px 22px; min-width: 140px; flex: 1; }}
-    .card .label {{ font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }}
-    .card .value {{ font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }}
+    header {{ background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 20px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }}
+    header h1 {{ font-size: 1.4rem; font-weight: 700; color: #f8fafc; }}
+    header p {{ color: #94a3b8; font-size: 0.82rem; margin-left: auto; }}
+    .badge {{ display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.68rem; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }}
+    main {{ max-width: 1280px; margin: 0 auto; padding: 24px 20px; }}
+
+    /* Controls */
+    .controls {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
+    .controls label {{ font-size: 0.8rem; color: #94a3b8; }}
+    .controls select {{ background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 6px; padding: 5px 10px; font-size: 0.82rem; cursor: pointer; }}
+    .controls select:focus {{ outline: none; border-color: #3b82f6; }}
+    .controls .sep {{ color: #475569; font-size: 1rem; }}
+    .mode-badge {{ font-size: 0.72rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }}
+    .mode-single {{ background: #1e3a5f; color: #60a5fa; }}
+    .mode-multi {{ background: #1a3a2a; color: #4ade80; }}
+
+    /* Summary cards */
+    .cards {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }}
+    .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 18px; min-width: 120px; flex: 1; }}
+    .card .label {{ font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }}
+    .card .value {{ font-size: 1.7rem; font-weight: 700; color: #f1f5f9; }}
     .card .value.pos {{ color: #4ade80; }}
     .card .value.neg {{ color: #f87171; }}
     .card .value.warn {{ color: #fbbf24; }}
-    section {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }}
-    section .sec-header {{ padding: 16px 22px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
-    section .sec-header h2 {{ font-size: 1rem; font-weight: 600; color: #f1f5f9; }}
-    section .sec-header .count {{ background: #334155; color: #94a3b8; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; }}
+
+    /* Sections */
+    section {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }}
+    .sec-header {{ padding: 14px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
+    .sec-header h2 {{ font-size: 0.95rem; font-weight: 600; color: #f1f5f9; }}
+    .count {{ background: #334155; color: #94a3b8; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; }}
+    .hint {{ color: #475569; font-size: 0.75rem; margin-left: auto; }}
+
+    /* Streak section */
+    .streak-body {{ padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }}
+    .streak-row {{ display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }}
+    .streak-label {{ font-size: 0.78rem; color: #94a3b8; white-space: nowrap; padding-top: 2px; min-width: 60px; }}
+    .streak-chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
+    .chip {{ display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; font-weight: 600; }}
+    .chip-buy {{ background: #14532d; color: #4ade80; }}
+    .chip-sell {{ background: #450a0a; color: #f87171; }}
+    .chip .chip-code {{ font-family: monospace; }}
+    .chip .chip-name {{ color: inherit; opacity: 0.8; font-weight: 400; }}
+    .streak-empty {{ color: #475569; font-style: italic; font-size: 0.82rem; padding: 8px 0; }}
+
+    /* Table */
     .table-wrap {{ overflow-x: auto; }}
-    table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 0.84rem; }}
     thead tr {{ background: #0f172a; }}
-    th {{ padding: 10px 14px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; }}
-    th.sortable {{ cursor: pointer; }}
-    th.sortable:hover {{ color: #94a3b8; }}
-    th .sort-icon {{ display: inline-block; margin-left: 4px; opacity: 0.3; font-style: normal; transition: opacity .15s; }}
-    th.asc .sort-icon, th.desc .sort-icon {{ opacity: 1; }}
-    th.desc .sort-icon {{ display: inline-block; transform: rotate(180deg); }}
-    td {{ padding: 9px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }}
-    tbody tr:hover {{ background: #263148; }}
-    .code {{ font-family: monospace; color: #93c5fd; font-size: 0.85rem; }}
+    th {{ padding: 10px 13px; text-align: left; color: #64748b; font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; cursor: pointer; }}
+    th:hover {{ color: #94a3b8; }}
+    th .si {{ display: inline-block; margin-left: 3px; opacity: 0.25; font-style: normal; font-size: 0.65rem; }}
+    th.asc .si, th.desc .si {{ opacity: 1; }}
+    th.desc .si {{ display: inline-block; transform: rotate(180deg); }}
+    td {{ padding: 8px 13px; border-top: 1px solid #1e293b; color: #cbd5e1; white-space: nowrap; }}
+    tbody tr:hover {{ background: #1e3248; }}
+    .code {{ font-family: monospace; color: #93c5fd; font-size: 0.84rem; }}
     .num {{ text-align: right; font-variant-numeric: tabular-nums; }}
     .pos {{ color: #4ade80; font-weight: 600; }}
     .neg {{ color: #f87171; font-weight: 600; }}
     .zero {{ color: #475569; }}
-    .badge-new {{ font-size: 0.72rem; background: #14532d; color: #4ade80; border-radius: 4px; padding: 1px 8px; text-align: center; }}
-    .weight-cell {{ min-width: 120px; }}
-    .weight-bar-wrap {{ display: flex; align-items: center; gap: 8px; }}
-    .weight-bar {{ height: 6px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }}
-    .weight-label {{ color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.82rem; }}
-    .unit {{ font-size: 0.68rem; color: #475569; margin-left: 3px; }}
-    .empty {{ color: #475569; padding: 16px 22px; font-style: italic; font-size: 0.85rem; }}
-    footer {{ text-align: center; padding: 24px; color: #475569; font-size: 0.78rem; }}
-    @media (max-width: 600px) {{
-      .cards {{ gap: 10px; }}
+    .hidden {{ display: none !important; }}
+
+    /* Weight bar */
+    .w-wrap {{ display: flex; align-items: center; gap: 7px; }}
+    .w-bar {{ height: 5px; background: linear-gradient(90deg, #3b82f6, #6366f1); border-radius: 3px; min-width: 2px; flex-shrink: 0; }}
+    .w-lbl {{ color: #93c5fd; font-variant-numeric: tabular-nums; font-size: 0.8rem; }}
+
+    /* Streak badges in table */
+    .streak-tag {{ display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }}
+    .streak-tag.buy {{ background: #14532d; color: #4ade80; }}
+    .streak-tag.sell {{ background: #450a0a; color: #f87171; }}
+    .badge-new {{ font-size: 0.68rem; background: #1e3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 6px; }}
+
+    .empty {{ color: #475569; padding: 14px 20px; font-style: italic; font-size: 0.82rem; }}
+    footer {{ text-align: center; padding: 20px; color: #475569; font-size: 0.75rem; }}
+
+    @media (max-width: 640px) {{
+      header {{ padding: 14px 16px; }}
+      .cards {{ gap: 8px; }}
       .card .value {{ font-size: 1.4rem; }}
-      th, td {{ padding: 7px 10px; }}
+      th, td {{ padding: 6px 9px; }}
+      .controls {{ gap: 8px; }}
     }}
   </style>
 </head>
 <body>
-  <header>
-    <h1>49YTW 持股追蹤 <span class="badge">自動更新</span></h1>
-    <p>資料日期：{date_label} &nbsp;·&nbsp; 產生時間：{gen_time or datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-  </header>
-  <main>
-    <div class="cards">
-      <div class="card"><div class="label">持股總數</div><div class="value">{total} <span style="font-size:1rem;color:#64748b">檔</span></div></div>
-      <div class="card"><div class="label">新增</div><div class="value pos">{len(added_rows)}</div></div>
-      <div class="card"><div class="label">刪除</div><div class="value neg">{len(removed_rows)}</div></div>
-      <div class="card"><div class="label">異動</div><div class="value warn">{len(changed_rows)}</div></div>
-      <div class="card"><div class="label">比較區間</div><div class="value" style="font-size:0.9rem;padding-top:4px">{prev_date}<br>→ {today_date}</div></div>
+<header>
+  <h1>49YTW 持股追蹤 <span class="badge">自動更新</span></h1>
+  <p id="hdr-date">最新資料：{date_label}</p>
+</header>
+<main>
+
+  <!-- 比較區間控制 -->
+  <div class="controls">
+    <label>比較區間：</label>
+    <select id="sel-start"></select>
+    <span class="sep">→</span>
+    <select id="sel-end"></select>
+    <span id="mode-badge" class="mode-badge mode-single">單日</span>
+  </div>
+
+  <!-- 摘要卡片 -->
+  <div class="cards">
+    <div class="card"><div class="label">持股總數</div><div class="value" id="c-total">—</div></div>
+    <div class="card"><div class="label">新增</div><div class="value pos" id="c-add">—</div></div>
+    <div class="card"><div class="label">刪除</div><div class="value neg" id="c-del">—</div></div>
+    <div class="card"><div class="label">異動</div><div class="value warn" id="c-chg">—</div></div>
+    <div class="card"><div class="label">比較區間</div><div class="value" id="c-range" style="font-size:0.85rem;line-height:1.4">—</div></div>
+  </div>
+
+  <!-- 連續動態 -->
+  <section id="streak-sec">
+    <div class="sec-header">
+      <h2>🔥 連續動態</h2>
+      <span class="hint">依全部歷史資料計算</span>
     </div>
+    <div class="streak-body" id="streak-body"></div>
+  </section>
 
-    <section>
-      <div class="sec-header">
-        <h2>📋 今日持股 &amp; 異動</h2>
-        <span class="count">{total} 檔</span>
-        <span style="color:#475569;font-size:0.78rem;margin-left:auto">點擊欄位標題排序</span>
-      </div>
-      <div class="table-wrap">
-        <table id="main-table">
-          <thead>
-            <tr>
-              <th class="sortable" data-col="0">代號<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="1">名稱<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="2">今日張數<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="3" data-default-desc="true">持股權重<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="4">張數變化<i class="sort-icon">▲</i></th>
-              <th class="sortable num" data-col="5">前日權重<i class="sort-icon">▲</i></th>
-              <th class="sortable" data-col="6">權重變化<i class="sort-icon">▲</i></th>
-            </tr>
-          </thead>
-          <tbody>{merged_rows}</tbody>
-        </table>
-      </div>
-    </section>
+  <!-- 主表格 -->
+  <section>
+    <div class="sec-header">
+      <h2>📋 今日持股 &amp; 異動</h2>
+      <span class="count" id="tbl-count">—</span>
+      <span class="hint">點擊欄位標題排序</span>
+    </div>
+    <div class="table-wrap">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th data-col="0">代號<i class="si">▲</i></th>
+            <th data-col="1">名稱<i class="si">▲</i></th>
+            <th data-col="2" class="num">今日張數<i class="si">▲</i></th>
+            <th data-col="3">持股權重<i class="si">▲</i></th>
+            <th data-col="4" class="num" id="th-chg">張數變化<i class="si">▲</i></th>
+            <th data-col="5" class="num" id="th-pw">前日權重<i class="si">▲</i></th>
+            <th data-col="6" id="th-wc">權重變化<i class="si">▲</i></th>
+          </tr>
+        </thead>
+        <tbody id="main-tbody"></tbody>
+      </table>
+    </div>
+  </section>
 
-    <section>
-      <div class="sec-header"><h2>🔴 刪除股票</h2><span class="count">{len(removed_rows)} 檔</span></div>
-      <div class="table-wrap">{removed_table(removed_rows)}</div>
-    </section>
-  </main>
-  <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
+  <!-- 刪除股票 -->
+  <section id="removed-sec">
+    <div class="sec-header">
+      <h2>🔴 刪除股票</h2>
+      <span class="count" id="del-count">0 檔</span>
+    </div>
+    <div id="removed-body"></div>
+  </section>
 
-  <script>
-    (function () {{
-      const table = document.getElementById('main-table');
-      const tbody = table.querySelector('tbody');
-      let sortCol = 3, sortAsc = false;
+</main>
+<footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日 18:00 自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
-      function getVal(row, col) {{
-        const cell = row.cells[col];
-        const v = cell.getAttribute('data-sort');
-        if (v !== null) return isNaN(+v) ? v : +v;
-        return cell.textContent.trim();
+<script>
+(function () {{
+  // ── 歷史資料（Python 嵌入）──────────────────────────────
+  const HISTORY = {history_json};
+  const DATES   = {dates_json};  // ascending
+
+  // ── 工具函式 ─────────────────────────────────────────────
+  function dateLabel(d) {{
+    return d.slice(0,4) + '/' + d.slice(4,6) + '/' + d.slice(6,8);
+  }}
+  function toZhang(shares) {{ return Math.floor(shares / 1000); }}
+  function fmtN(n) {{ return n.toLocaleString('zh-TW'); }}
+  function fmtDiff(n) {{
+    if (n === 0) return '—';
+    return (n > 0 ? '+' : '') + fmtN(n);
+  }}
+  function fmtW(w) {{
+    if (w === null || w === undefined) return '—';
+    return w.toFixed(2) + '%';
+  }}
+  function fmtWDiff(w) {{
+    if (w === 0) return '—';
+    return (w > 0 ? '+' : '') + w.toFixed(2) + '%';
+  }}
+  function cls(n) {{
+    if (n > 0) return 'pos'; if (n < 0) return 'neg'; return 'zero';
+  }}
+
+  // ── 連續買賣計算（全歷史）───────────────────────────────
+  function computeStreaks() {{
+    const all = {{}};
+    DATES.forEach(d => Object.keys(HISTORY[d] || {{}}).forEach(c => (all[c] = true)));
+    const streaks = {{}};
+    for (const code of Object.keys(all)) {{
+      let count = 0, dir = null;
+      for (let i = 1; i < DATES.length; i++) {{
+        const p = HISTORY[DATES[i-1]]?.[code];
+        const c = HISTORY[DATES[i]]?.[code];
+        if (!p || !c) {{ count = 0; dir = null; continue; }}
+        const diff = c.shares - p.shares;
+        const d = diff > 0 ? 'buy' : diff < 0 ? 'sell' : null;
+        if (!d) {{ count = 0; dir = null; }}
+        else if (d === dir) {{ count++; }}
+        else {{ count = 1; dir = d; }}
       }}
+      if (count >= 1 && dir) streaks[code] = {{ dir, count }};
+    }};
+    return streaks;
+  }}
 
-      function sortTable(col, asc) {{
-        const rows = Array.from(tbody.rows);
-        rows.sort((a, b) => {{
-          const va = getVal(a, col), vb = getVal(b, col);
-          if (typeof va === 'number' && typeof vb === 'number') return asc ? va - vb : vb - va;
-          return asc ? String(va).localeCompare(String(vb), 'zh-Hant') : String(vb).localeCompare(String(va), 'zh-Hant');
-        }});
-        rows.forEach(r => tbody.appendChild(r));
-      }}
+  // ── 比較兩個日期 ─────────────────────────────────────────
+  function compare(startDate, endDate) {{
+    const start = HISTORY[startDate] || {{}};
+    const end   = HISTORY[endDate]   || {{}};
+    const allCodes = new Set([...Object.keys(start), ...Object.keys(end)]);
+    const result = {{ added: [], removed: [], rows: [] }};
 
-      function updateHeaders(activeCol, asc) {{
-        table.querySelectorAll('th.sortable').forEach((th, i) => {{
-          th.classList.remove('asc', 'desc');
-          if (i === activeCol) th.classList.add(asc ? 'asc' : 'desc');
-        }});
-      }}
-
-      table.querySelectorAll('th.sortable').forEach((th, i) => {{
-        th.addEventListener('click', () => {{
-          if (sortCol === i) {{
-            sortAsc = !sortAsc;
-          }} else {{
-            sortCol = i;
-            sortAsc = th.dataset.defaultDesc !== 'true';
-          }}
-          sortTable(sortCol, sortAsc);
-          updateHeaders(sortCol, sortAsc);
-        }});
+    for (const code of allCodes) {{
+      const s = start[code], e = end[code];
+      if (!s && e)  {{ result.added.push({{ code, ...e }}); continue; }}
+      if (s && !e)  {{ result.removed.push({{ code, ...s }}); continue; }}
+      const sharesDiff = e.shares - s.shares;
+      const weightDiff = parseFloat((e.weight - s.weight).toFixed(2));
+      result.rows.push({{
+        code, name: e.name,
+        shares: e.shares, weight: e.weight,
+        prevShares: s.shares, prevWeight: s.weight,
+        sharesDiff, weightDiff,
+        changed: sharesDiff !== 0 || weightDiff !== 0,
       }});
+    }}
+    return result;
+  }}
 
-      sortTable(sortCol, sortAsc);
-      updateHeaders(sortCol, sortAsc);
-    }})();
-  </script>
+  // ── 渲染連續動態 ─────────────────────────────────────────
+  function renderStreaks(streaks) {{
+    const buys  = Object.entries(streaks).filter(([,v]) => v.dir==='buy' && v.count>=2)
+                    .sort((a,b) => b[1].count - a[1].count);
+    const sells = Object.entries(streaks).filter(([,v]) => v.dir==='sell' && v.count>=2)
+                    .sort((a,b) => b[1].count - a[1].count);
+
+    const body = document.getElementById('streak-body');
+    const lastDay = HISTORY[DATES[DATES.length-1]] || {{}};
+
+    function chips(list, cls) {{
+      if (!list.length) return `<span class="streak-empty">無</span>`;
+      return list.map(([code, v]) => {{
+        const name = lastDay[code]?.name || HISTORY[DATES[0]]?.[code]?.name || '';
+        const label = v.dir==='buy' ? `連${{v.count}}買` : `連${{v.count}}賣`;
+        return `<span class="chip chip-${{v.dir==='buy'?'buy':'sell'}}">
+          <span class="chip-code">${{code}}</span>
+          <span class="chip-name">${{name}}</span>
+          <strong>${{label}}</strong>
+        </span>`;
+      }}).join('');
+    }}
+
+    body.innerHTML = `
+      <div class="streak-row">
+        <span class="streak-label">📈 連續買進</span>
+        <div class="streak-chips">${{chips(buys,'buy')}}</div>
+      </div>
+      <div class="streak-row">
+        <span class="streak-label">📉 連續賣出</span>
+        <div class="streak-chips">${{chips(sells,'sell')}}</div>
+      </div>`;
+  }}
+
+  // ── 渲染主表格 ───────────────────────────────────────────
+  let sortCol = 3, sortAsc = false;
+
+  function renderTable(cmp, streaks, isMulti) {{
+    // 欄位可見性
+    document.getElementById('th-chg').textContent = isMulti ? '累計張數變化' : '張數變化';
+    document.getElementById('th-chg').appendChild((() => {{ const i=document.createElement('i'); i.className='si'; i.textContent='▲'; return i; }})());
+    const thPw = document.getElementById('th-pw');
+    const thWc = document.getElementById('th-wc');
+    thPw.classList.toggle('hidden', isMulti);
+    thWc.classList.toggle('hidden', isMulti);
+
+    // 組合所有行：added + rows（含 changed 與 unchanged）
+    const lastDay = HISTORY[DATES[DATES.length-1]] || {{}};
+    const addedCodes = new Set(cmp.added.map(r => r.code));
+    const allRows = [
+      ...cmp.added.map(r => ({{ ...r, isAdded: true, sharesDiff: r.shares, weightDiff: r.weight }})),
+      ...cmp.rows,
+    ];
+
+    // 排序
+    function getVal(row) {{
+      switch (sortCol) {{
+        case 0: return row.code;
+        case 1: return row.name;
+        case 2: return toZhang(row.shares);
+        case 3: return row.weight;
+        case 4: return row.isAdded ? 1e9 : row.sharesDiff;
+        case 5: return row.isAdded ? 1e9 : (row.prevWeight ?? 0);
+        case 6: return row.isAdded ? 1e9 : row.weightDiff;
+        default: return 0;
+      }}
+    }}
+    allRows.sort((a, b) => {{
+      const va = getVal(a), vb = getVal(b);
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb,'zh-Hant') : vb.localeCompare(va,'zh-Hant');
+      return sortAsc ? va - vb : vb - va;
+    }});
+
+    const tbody = document.getElementById('main-tbody');
+    tbody.innerHTML = allRows.map(row => {{
+      const zhang = toZhang(row.shares);
+      const barW  = Math.min(Math.floor(row.weight * 8), 100);
+      const stk   = streaks[row.code];
+      const stkTag = (stk && stk.count >= 2)
+        ? `<span class="streak-tag ${{stk.dir==='buy'?'buy':'sell'}}">連${{stk.count}}${{stk.dir==='buy'?'買':'賣'}}</span>`
+        : '';
+
+      // 張數變化欄
+      let chgCell;
+      if (row.isAdded) {{
+        chgCell = `<td class="num" data-sort="1000000"><span class="badge-new">新增</span></td>`;
+      }} else {{
+        const zdiff = toZhang(Math.abs(row.sharesDiff)) * Math.sign(row.sharesDiff);
+        const zdiffTxt = fmtDiff(zdiff);
+        chgCell = `<td class="num ${{cls(zdiff)}}" data-sort="${{zdiff}}">${{zdiffTxt}}${{stkTag}}</td>`;
+      }}
+
+      // 前日權重 & 權重變化（單日模式才顯示）
+      const pwCell = `<td class="num ${{isMulti?'hidden':''}}" data-sort="${{row.prevWeight??0}}">${{row.isAdded ? '—' : fmtW(row.prevWeight)}}</td>`;
+      const wcCell = `<td class="${{isMulti?'hidden':''}} ${{row.isAdded?'':cls(row.weightDiff)}}" data-sort="${{row.weightDiff??0}}">${{row.isAdded ? '—' : fmtWDiff(row.weightDiff)}}</td>`;
+
+      return `<tr>
+        <td class="code" data-sort="${{row.code}}">${{row.code}}</td>
+        <td data-sort="${{row.name}}">${{row.name}}</td>
+        <td class="num" data-sort="${{zhang}}">${{fmtN(zhang)}}</td>
+        <td data-sort="${{row.weight}}">
+          <div class="w-wrap">
+            <div class="w-bar" style="width:${{barW}}%"></div>
+            <span class="w-lbl">${{row.weight.toFixed(2)}}%</span>
+          </div>
+        </td>
+        ${{chgCell}}${{pwCell}}${{wcCell}}
+      </tr>`;
+    }}).join('');
+
+    document.getElementById('tbl-count').textContent = allRows.length + ' 檔';
+    updateSortHeaders();
+  }}
+
+  // ── 渲染刪除區塊 ─────────────────────────────────────────
+  function renderRemoved(removed) {{
+    const el = document.getElementById('removed-body');
+    document.getElementById('del-count').textContent = removed.length + ' 檔';
+    if (!removed.length) {{ el.innerHTML = "<p class='empty'>無刪除股票</p>"; return; }}
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead>
+      <tbody>${{removed.map(r => `<tr>
+        <td class="code">${{r.code}}</td><td>${{r.name}}</td>
+        <td class="num neg">${{fmtN(toZhang(r.shares))}}</td>
+        <td class="neg">${{r.weight.toFixed(2)}}%</td>
+      </tr>`).join('')}}</tbody>
+    </table></div>`;
+  }}
+
+  // ── 排序邏輯 ─────────────────────────────────────────────
+  function updateSortHeaders() {{
+    document.querySelectorAll('#main-table th').forEach((th, i) => {{
+      th.classList.remove('asc','desc');
+      if (i === sortCol) th.classList.add(sortAsc ? 'asc' : 'desc');
+    }});
+  }}
+
+  document.getElementById('main-table').addEventListener('click', e => {{
+    const th = e.target.closest('th');
+    if (!th) return;
+    const col = parseInt(th.dataset.col);
+    if (isNaN(col)) return;
+    if (sortCol === col) sortAsc = !sortAsc;
+    else {{ sortCol = col; sortAsc = col <= 1; }}  // 文字欄預設升冪，數值欄降冪
+    refresh();
+  }});
+
+  // ── 主流程 ───────────────────────────────────────────────
+  const streaks = computeStreaks();
+
+  function populateSelects() {{
+    const ss = document.getElementById('sel-start');
+    const se = document.getElementById('sel-end');
+    DATES.forEach(d => {{
+      ss.appendChild(Object.assign(document.createElement('option'), {{ value: d, textContent: dateLabel(d) }}));
+      se.appendChild(Object.assign(document.createElement('option'), {{ value: d, textContent: dateLabel(d) }}));
+    }});
+    // 預設：前一天 → 最新
+    if (DATES.length >= 2) ss.value = DATES[DATES.length - 2];
+    se.value = DATES[DATES.length - 1];
+  }}
+
+  function refresh() {{
+    const sd = document.getElementById('sel-start').value;
+    const ed = document.getElementById('sel-end').value;
+    const isMulti = DATES.indexOf(ed) - DATES.indexOf(sd) > 1;
+    const cmp = compare(sd, ed);
+
+    // mode badge
+    const mb = document.getElementById('mode-badge');
+    mb.textContent = isMulti ? '多日累計' : '單日';
+    mb.className = 'mode-badge ' + (isMulti ? 'mode-multi' : 'mode-single');
+
+    // cards
+    const total = cmp.rows.length + cmp.added.length;
+    const changed = cmp.rows.filter(r => r.changed).length;
+    document.getElementById('c-total').textContent = total;
+    document.getElementById('c-add').textContent   = cmp.added.length;
+    document.getElementById('c-del').textContent   = cmp.removed.length;
+    document.getElementById('c-chg').textContent   = changed;
+    document.getElementById('c-range').textContent = dateLabel(sd) + ' → ' + dateLabel(ed);
+
+    renderTable(cmp, streaks, isMulti);
+    renderRemoved(cmp.removed);
+  }}
+
+  document.getElementById('sel-start').addEventListener('change', refresh);
+  document.getElementById('sel-end').addEventListener('change', refresh);
+
+  populateSelects();
+  renderStreaks(streaks);
+  refresh();
+}})();
+</script>
 </body>
 </html>"""
 
 
 def main():
-    files = find_sorted_files()
-    if not files:
+    history = load_all_csvs()
+    if not history:
         print("找不到持股 CSV，跳過。")
         return
-    portfolio = load_csv(files[0])
-    prev_date, today_date, gen_time, added, removed, changed = load_latest_diff_md()
-    html = build_html(portfolio, prev_date, today_date, gen_time, added, removed, changed)
+    html = build_html(history)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"已產生 {OUTPUT_FILE}")
+    print(f"已產生 {OUTPUT_FILE}（{len(history)} 個日期）")
 
 
 if __name__ == "__main__":
