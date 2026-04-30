@@ -87,15 +87,32 @@
     td.name-cell { cursor: pointer; }
     td.name-cell:hover { color: #e2e8f0; text-decoration: underline dotted #475569; }
     #stock-menu { position: fixed; z-index: 9999; background: #1e293b; border: 1px solid #334155;
-      border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); padding: 6px 0; min-width: 200px;
+      border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.6); padding: 6px 0; min-width: 248px;
       display: none; }
     #stock-menu.show { display: block; }
-    #stock-menu .menu-header { padding: 7px 14px 5px; font-size: 0.72rem; color: #64748b;
-      border-bottom: 1px solid #334155; margin-bottom: 4px; }
+    #stock-menu .menu-header { padding: 8px 14px 6px; font-size: 0.78rem; font-weight: 600;
+      color: #e2e8f0; border-bottom: 1px solid #334155; }
     #stock-menu a { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
       color: #cbd5e1; font-size: 0.84rem; text-decoration: none; white-space: nowrap; }
     #stock-menu a:hover { background: #263148; color: #e2e8f0; }
     #stock-menu a .menu-icon { font-size: 1rem; width: 20px; text-align: center; }
+    #stock-menu .menu-links { border-top: 1px solid #334155; }
+
+    /* 走勢圖 */
+    .spark-wrap { padding: 10px 14px 6px; }
+    .spark-meta { display: flex; justify-content: space-between; font-size: 0.7rem;
+      color: #64748b; margin-bottom: 6px; }
+    .spark-meta .diff-pos { color: #4ade80; font-weight: 600; }
+    .spark-meta .diff-neg { color: #f87171; font-weight: 600; }
+    .spark-meta .diff-flat { color: #64748b; }
+    .spark-svg { display: block; overflow: visible; }
+    .spark-empty { color: #475569; font-size: 0.75rem; padding: 8px 0; font-style: italic; }
+
+    /* 權重變化 mini bar */
+    .wc-wrap { display: flex; align-items: center; gap: 6px; }
+    .wc-txt { min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.82rem; }
+    .wc-track { width: 50px; height: 5px; background: #0f172a; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .wc-fill { height: 100%; border-radius: 3px; }
 
     /* 代號複製提示 */
     td.code { cursor: pointer; position: relative; }
@@ -187,15 +204,18 @@
 <!-- 股票名稱浮動選單 -->
 <div id="stock-menu">
   <div class="menu-header" id="menu-title"></div>
-  <a id="menu-overview" href="#" target="_blank" rel="noopener">
-    <span class="menu-icon">📊</span>概況
-  </a>
-  <a id="menu-major" href="#" target="_blank" rel="noopener">
-    <span class="menu-icon">🏦</span>大戶籌碼
-  </a>
-  <a id="menu-trend" href="#" target="_blank" rel="noopener">
-    <span class="menu-icon">📈</span>主力動向
-  </a>
+  <div class="spark-wrap" id="menu-sparkline"></div>
+  <div class="menu-links">
+    <a id="menu-overview" href="#" target="_blank" rel="noopener">
+      <span class="menu-icon">📊</span>概況
+    </a>
+    <a id="menu-major" href="#" target="_blank" rel="noopener">
+      <span class="menu-icon">🏦</span>大戶籌碼
+    </a>
+    <a id="menu-trend" href="#" target="_blank" rel="noopener">
+      <span class="menu-icon">📈</span>主力動向
+    </a>
+  </div>
 </div>
 
 <!-- 複製提示 toast -->
@@ -366,7 +386,7 @@
 
       // 前日權重（單日才顯示）& 權重變化/累計權重變化（兩模式皆顯示）
       const pwCell = `<td class="num ${isMulti?'hidden':''}" data-sort="${row.prevWeight??0}">${row.isAdded ? '—' : fmtW(row.prevWeight)}</td>`;
-      const wcCell = `<td class="${row.isAdded?'':cls(row.weightDiff)}" data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : fmtWDiff(row.weightDiff)}</td>`;
+      const wcCell = `<td data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : wcBar(row.weightDiff)}</td>`;
 
       return `<tr>
         <td class="code" data-sort="${row.code}" data-code="${row.code}">${row.code}</td>
@@ -463,14 +483,76 @@
   renderStreaks(streaks);
   refresh();
 
+  // ── 權重變化 mini bar ────────────────────────────────────
+  function wcBar(wc) {
+    if (wc === 0) return '<span class="zero">—</span>';
+    const scale = Math.min(Math.abs(wc) / 1.5 * 100, 100);
+    const color = wc > 0 ? '#4ade80' : '#f87171';
+    const txtCls = wc > 0 ? 'pos' : 'neg';
+    return `<div class="wc-wrap">
+      <span class="wc-txt ${txtCls}">${fmtWDiff(wc)}</span>
+      <div class="wc-track"><div class="wc-fill" style="width:${scale.toFixed(1)}%;background:${color}"></div></div>
+    </div>`;
+  }
+
+  // ── 走勢圖 SVG ───────────────────────────────────────────
+  function buildSparkline(code) {
+    const pts = DATES.map(d => {
+      const s = HISTORY[d]?.[code];
+      return s ? { d, z: Math.floor(s.shares / 1000) } : null;
+    }).filter(Boolean);
+
+    if (pts.length < 2) return '<p class="spark-empty">歷史資料不足</p>';
+
+    const W = 220, H = 58;
+    const pad = { t: 6, r: 8, b: 18, l: 8 };
+    const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+    const vals = pts.map(p => p.z);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const range = maxV - minV || 1;
+
+    const px = i => pad.l + (pts.length < 2 ? pw/2 : i * pw / (pts.length - 1));
+    const py = v => pad.t + ph - (v - minV) / range * ph;
+
+    const polyPts = pts.map((p, i) => `${px(i).toFixed(1)},${py(p.z).toFixed(1)}`).join(' ');
+    const dots = pts.map((p, i) => {
+      const isLast = i === pts.length - 1;
+      return `<circle cx="${px(i).toFixed(1)}" cy="${py(p.z).toFixed(1)}" r="${isLast ? 3.5 : 2.5}"
+        fill="${isLast ? '#60a5fa' : '#334155'}" stroke="${isLast ? '#1e293b' : 'none'}" stroke-width="1.5"/>`;
+    }).join('');
+    const labels = [
+      `<text x="${pad.l}" y="${H}" font-size="9" fill="#475569" text-anchor="start">${pts[0].d.slice(4,6)}/${pts[0].d.slice(6,8)}</text>`,
+      pts.length > 2 ? `<text x="${(W/2).toFixed(0)}" y="${H}" font-size="9" fill="#334155" text-anchor="middle">${pts[Math.floor(pts.length/2)].d.slice(4,6)}/${pts[Math.floor(pts.length/2)].d.slice(6,8)}</text>` : '',
+      `<text x="${W - pad.r}" y="${H}" font-size="9" fill="#475569" text-anchor="end">${pts[pts.length-1].d.slice(4,6)}/${pts[pts.length-1].d.slice(6,8)}</text>`,
+    ].join('');
+
+    const diff = pts[pts.length-1].z - pts[0].z;
+    const diffCls = diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : 'diff-flat';
+    const diffTxt = diff === 0 ? '持平' : (diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString()) + ' 張';
+
+    return `
+      <div class="spark-meta">
+        <span>${pts[0].z.toLocaleString()} 張</span>
+        <span class="${diffCls}">${diffTxt}</span>
+        <span>${pts[pts.length-1].z.toLocaleString()} 張</span>
+      </div>
+      <svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        <polyline points="${polyPts}" fill="none" stroke="#3b82f6" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+        ${labels}
+      </svg>`;
+  }
+
   // ── 名稱欄：浮動選單 ─────────────────────────────────────
   const menu = document.getElementById('stock-menu');
   function openMenu(code, name, x, y) {
     const base = `https://www.wantgoo.com/stock/${code}`;
-    document.getElementById('menu-title').textContent  = `${code} ${name}`;
-    document.getElementById('menu-overview').href      = base;
-    document.getElementById('menu-major').href         = base + '/major-investors/concentration';
-    document.getElementById('menu-trend').href         = base + '/major-investors/main-trend';
+    document.getElementById('menu-title').textContent        = `${code}　${name}`;
+    document.getElementById('menu-sparkline').innerHTML      = buildSparkline(code);
+    document.getElementById('menu-overview').href            = base;
+    document.getElementById('menu-major').href               = base + '/major-investors/concentration';
+    document.getElementById('menu-trend').href               = base + '/major-investors/main-trend';
     // 定位：避免跑出視窗右側/下方
     menu.style.left = '0'; menu.style.top = '0';
     menu.classList.add('show');
