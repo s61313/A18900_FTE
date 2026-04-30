@@ -506,9 +506,12 @@
       return s ? { d, z: Math.floor(s.shares / 1000), deleted: false } : null;
     }).filter(Boolean);
 
-    // 已刪除股票：在最新日期補一個 z=0 的終點
+    // 已刪除股票：在實際刪除日（最後持股日的下一個交易日）補一個 z=0 的終點
     if (isDeleted && pts.length > 0) {
-      pts.push({ d: latestDate, z: 0, deleted: true });
+      const lastHeldDate = pts[pts.length - 1].d;
+      const lastHeldIdx = DATES.indexOf(lastHeldDate);
+      const deletionDate = DATES.slice(lastHeldIdx + 1).find(d => !HISTORY[d]?.[code]) || latestDate;
+      pts.push({ d: deletionDate, z: 0, deleted: true });
     }
 
     if (pts.length < 2) return '<p class="spark-empty">歷史資料不足</p>';
@@ -520,7 +523,9 @@
     const minV = Math.min(...vals), maxV = Math.max(...vals);
     const range = maxV - minV || 1;
 
-    const px = i => pad.l + (pts.length < 2 ? pw/2 : i * pw / (pts.length - 1));
+    // x 位置依據 pts[i].d 在完整 DATES 軸上的位置，使刪除日落在正確時間點
+    const totalSpan = DATES.length < 2 ? 1 : DATES.length - 1;
+    const px = i => { const di = DATES.indexOf(pts[i].d); return pad.l + (di < 0 ? 0 : di / totalSpan * pw); };
     const py = v => pad.t + ph - (v - minV) / range * ph;
 
     const polyPts = pts.map((p, i) => `${px(i).toFixed(1)},${py(p.z).toFixed(1)}`).join(' ');
