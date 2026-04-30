@@ -498,10 +498,18 @@
 
   // ── 走勢圖 SVG ───────────────────────────────────────────
   function buildSparkline(code) {
+    const latestDate = DATES[DATES.length - 1];
+    const isDeleted  = !HISTORY[latestDate]?.[code];
+
     const pts = DATES.map(d => {
       const s = HISTORY[d]?.[code];
-      return s ? { d, z: Math.floor(s.shares / 1000) } : null;
+      return s ? { d, z: Math.floor(s.shares / 1000), deleted: false } : null;
     }).filter(Boolean);
+
+    // 已刪除股票：在最新日期補一個 z=0 的終點
+    if (isDeleted && pts.length > 0) {
+      pts.push({ d: latestDate, z: 0, deleted: true });
+    }
 
     if (pts.length < 2) return '<p class="spark-empty">歷史資料不足</p>';
 
@@ -516,18 +524,39 @@
     const py = v => pad.t + ph - (v - minV) / range * ph;
 
     const polyPts = pts.map((p, i) => `${px(i).toFixed(1)},${py(p.z).toFixed(1)}`).join(' ');
+
+    // 虛線段：從最後持股點 → 歸零點
+    const dashedLine = isDeleted && pts.length >= 2 ? (() => {
+      const si = pts.length - 2, ei = pts.length - 1;
+      return `<line x1="${px(si).toFixed(1)}" y1="${py(pts[si].z).toFixed(1)}"
+        x2="${px(ei).toFixed(1)}" y2="${py(0).toFixed(1)}"
+        stroke="#f87171" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>`;
+    })() : '';
+
     const dots = pts.map((p, i) => {
-      const isLast = i === pts.length - 1;
+      if (p.deleted) {
+        // 歸零點：紅色空心圓 + X
+        const cx = px(i).toFixed(1), cy = py(0).toFixed(1);
+        return `<circle cx="${cx}" cy="${cy}" r="4" fill="#0f172a" stroke="#f87171" stroke-width="1.5"/>
+          <line x1="${(+cx-2.5).toFixed(1)}" y1="${(+cy-2.5).toFixed(1)}" x2="${(+cx+2.5).toFixed(1)}" y2="${(+cy+2.5).toFixed(1)}" stroke="#f87171" stroke-width="1.5"/>
+          <line x1="${(+cx+2.5).toFixed(1)}" y1="${(+cy-2.5).toFixed(1)}" x2="${(+cx-2.5).toFixed(1)}" y2="${(+cy+2.5).toFixed(1)}" stroke="#f87171" stroke-width="1.5"/>`;
+      }
+      const isLast = !isDeleted && i === pts.length - 1;
       return `<circle cx="${px(i).toFixed(1)}" cy="${py(p.z).toFixed(1)}" r="${isLast ? 3.5 : 2.5}"
         fill="${isLast ? '#60a5fa' : '#334155'}" stroke="${isLast ? '#1e293b' : 'none'}" stroke-width="1.5"/>`;
     }).join('');
+
+    // 標籤：最後標示的是最後持股日（非歸零點）
+    const displayPts = isDeleted ? pts.slice(0, -1) : pts;
     const labels = [
       `<text x="${pad.l}" y="${H}" font-size="9" fill="#475569" text-anchor="start">${pts[0].d.slice(4,6)}/${pts[0].d.slice(6,8)}</text>`,
-      pts.length > 2 ? `<text x="${(W/2).toFixed(0)}" y="${H}" font-size="9" fill="#334155" text-anchor="middle">${pts[Math.floor(pts.length/2)].d.slice(4,6)}/${pts[Math.floor(pts.length/2)].d.slice(6,8)}</text>` : '',
-      `<text x="${W - pad.r}" y="${H}" font-size="9" fill="#475569" text-anchor="end">${pts[pts.length-1].d.slice(4,6)}/${pts[pts.length-1].d.slice(6,8)}</text>`,
+      displayPts.length > 2 ? `<text x="${(W/2).toFixed(0)}" y="${H}" font-size="9" fill="#334155" text-anchor="middle">${displayPts[Math.floor(displayPts.length/2)].d.slice(4,6)}/${displayPts[Math.floor(displayPts.length/2)].d.slice(6,8)}</text>` : '',
+      `<text x="${W - pad.r}" y="${H}" font-size="9" fill="${isDeleted?'#f87171':'#475569'}" text-anchor="end">${isDeleted?'已刪除':displayPts[displayPts.length-1].d.slice(4,6)+'/'+displayPts[displayPts.length-1].d.slice(6,8)}</text>`,
     ].join('');
 
-    const diff = pts[pts.length-1].z - pts[0].z;
+    // meta 列：右側顯示「已刪除」
+    const lastHeld = isDeleted ? pts[pts.length - 2] : pts[pts.length - 1];
+    const diff = lastHeld.z - pts[0].z;
     const diffCls = diff > 0 ? 'diff-pos' : diff < 0 ? 'diff-neg' : 'diff-flat';
     const diffTxt = diff === 0 ? '持平' : (diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString()) + ' 張';
 
@@ -535,11 +564,12 @@
       <div class="spark-meta">
         <span>${pts[0].z.toLocaleString()} 張</span>
         <span class="${diffCls}">${diffTxt}</span>
-        <span>${pts[pts.length-1].z.toLocaleString()} 張</span>
+        <span class="${isDeleted ? 'diff-neg' : ''}">${isDeleted ? '已刪除' : lastHeld.z.toLocaleString() + ' 張'}</span>
       </div>
       <svg class="spark-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
         <polyline points="${polyPts}" fill="none" stroke="#3b82f6" stroke-width="2"
           stroke-linejoin="round" stroke-linecap="round"/>
+        ${dashedLine}
         ${dots}
         ${labels}
       </svg>`;
