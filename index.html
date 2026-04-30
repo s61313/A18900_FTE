@@ -83,6 +83,28 @@
     .empty { color: #475569; padding: 14px 20px; font-style: italic; font-size: 0.82rem; }
     footer { text-align: center; padding: 20px; color: #475569; font-size: 0.75rem; }
 
+    /* 名稱點擊選單 */
+    td.name-cell { cursor: pointer; }
+    td.name-cell:hover { color: #e2e8f0; text-decoration: underline dotted #475569; }
+    #stock-menu { position: fixed; z-index: 9999; background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); padding: 6px 0; min-width: 200px;
+      display: none; }
+    #stock-menu.show { display: block; }
+    #stock-menu .menu-header { padding: 7px 14px 5px; font-size: 0.72rem; color: #64748b;
+      border-bottom: 1px solid #334155; margin-bottom: 4px; }
+    #stock-menu a { display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+      color: #cbd5e1; font-size: 0.84rem; text-decoration: none; white-space: nowrap; }
+    #stock-menu a:hover { background: #263148; color: #e2e8f0; }
+    #stock-menu a .menu-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* 代號複製提示 */
+    td.code { cursor: pointer; position: relative; }
+    td.code:hover { color: #bfdbfe; }
+    .copy-toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: #1e3a5f; color: #93c5fd; font-size: 0.8rem; padding: 6px 16px;
+      border-radius: 999px; pointer-events: none; opacity: 0; transition: opacity .2s;
+      z-index: 9999; }
+
     @media (max-width: 640px) {
       header { padding: 14px 16px; }
       .cards { gap: 8px; }
@@ -161,6 +183,23 @@
 
 </main>
 <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日 18:00 自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
+
+<!-- 股票名稱浮動選單 -->
+<div id="stock-menu">
+  <div class="menu-header" id="menu-title"></div>
+  <a id="menu-overview" href="#" target="_blank" rel="noopener">
+    <span class="menu-icon">📊</span>概況
+  </a>
+  <a id="menu-major" href="#" target="_blank" rel="noopener">
+    <span class="menu-icon">🏦</span>大戶籌碼
+  </a>
+  <a id="menu-trend" href="#" target="_blank" rel="noopener">
+    <span class="menu-icon">📈</span>主力動向
+  </a>
+</div>
+
+<!-- 複製提示 toast -->
+<div class="copy-toast" id="copy-toast"></div>
 
 <script>
 (function () {
@@ -330,8 +369,8 @@
       const wcCell = `<td class="${row.isAdded?'':cls(row.weightDiff)}" data-sort="${row.weightDiff??0}">${row.isAdded ? '—' : fmtWDiff(row.weightDiff)}</td>`;
 
       return `<tr>
-        <td class="code" data-sort="${row.code}">${row.code}</td>
-        <td data-sort="${row.name}">${row.name}</td>
+        <td class="code" data-sort="${row.code}" data-code="${row.code}">${row.code}</td>
+        <td class="name-cell" data-sort="${row.name}" data-code="${row.code}" data-name="${row.name}">${row.name}</td>
         <td class="num" data-sort="${zhang}">${fmtN(zhang)}</td>
         <td data-sort="${row.weight}">
           <div class="w-wrap">
@@ -423,6 +462,50 @@
   populateSelects();
   renderStreaks(streaks);
   refresh();
+
+  // ── 名稱欄：浮動選單 ─────────────────────────────────────
+  const menu = document.getElementById('stock-menu');
+  function openMenu(code, name, x, y) {
+    const base = `https://www.wantgoo.com/stock/${code}`;
+    document.getElementById('menu-title').textContent  = `${code} ${name}`;
+    document.getElementById('menu-overview').href      = base;
+    document.getElementById('menu-major').href         = base + '/major-investors/concentration';
+    document.getElementById('menu-trend').href         = base + '/major-investors/main-trend';
+    // 定位：避免跑出視窗右側/下方
+    menu.style.left = '0'; menu.style.top = '0';
+    menu.classList.add('show');
+    const mw = menu.offsetWidth, mh = menu.offsetHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    menu.style.left = (x + mw > vw ? vw - mw - 8 : x) + 'px';
+    menu.style.top  = (y + mh > vh ? y - mh - 4  : y + 4) + 'px';
+  }
+  function closeMenu() { menu.classList.remove('show'); }
+
+  document.getElementById('main-tbody').addEventListener('click', e => {
+    const td = e.target.closest('td.name-cell');
+    if (!td) return;
+    e.stopPropagation();
+    openMenu(td.dataset.code, td.dataset.name, e.clientX, e.clientY);
+  });
+  document.addEventListener('click', e => {
+    if (!menu.contains(e.target)) closeMenu();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
+  const toast = document.getElementById('copy-toast');
+  let toastTimer;
+  document.getElementById('main-tbody').addEventListener('click', e => {
+    const td = e.target.closest('td.code');
+    if (!td) return;
+    const code = td.dataset.code;
+    navigator.clipboard.writeText(code).then(() => {
+      clearTimeout(toastTimer);
+      toast.textContent = `已複製 ${code}`;
+      toast.style.opacity = '1';
+      toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
+    });
+  });
 })();
 </script>
 </body>
