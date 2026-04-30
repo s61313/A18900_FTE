@@ -428,18 +428,18 @@ def build_html(history):
         : '';
 
       // 張數變化欄
-      let chgCell;
-      if (row.isAdded) {{
-        chgCell = `<td class="num" data-sort="1000000"><span class="badge-new">新增</span></td>`;
-      }} else {{
-        const zdiff = toZhang(Math.abs(row.sharesDiff)) * Math.sign(row.sharesDiff);
-        const zdiffTxt = fmtDiff(zdiff);
-        chgCell = `<td class="num ${{cls(zdiff)}}" data-sort="${{zdiff}}">${{zdiffTxt}}${{stkTag}}</td>`;
-      }}
+      const zdiff = row.isAdded
+        ? toZhang(row.shares)
+        : toZhang(Math.abs(row.sharesDiff)) * Math.sign(row.sharesDiff);
+      const zdiffTxt = fmtDiff(zdiff);
+      const newTag = row.isAdded
+        ? `<span class="streak-tag" style="background:#1e3a5f;color:#60a5fa;margin-left:5px">新增</span>`
+        : '';
+      const chgCell = `<td class="num ${{cls(zdiff)}}" data-sort="${{zdiff}}">${{zdiffTxt}}${{newTag}}${{!row.isAdded ? stkTag : ''}}</td>`;
 
       // 前日權重（單日才顯示）& 權重變化/累計權重變化（兩模式皆顯示）
       const pwCell = `<td class="num ${{isMulti?'hidden':''}}" data-sort="${{row.prevWeight??0}}">${{row.isAdded ? '—' : fmtW(row.prevWeight)}}</td>`;
-      const wcCell = `<td data-sort="${{row.weightDiff??0}}">${{row.isAdded ? '—' : wcBar(row.weightDiff)}}</td>`;
+      const wcCell = `<td data-sort="${{row.weightDiff??0}}">${{wcBar(row.weightDiff)}}</td>`;
 
       return `<tr>
         <td class="code" data-sort="${{row.code}}" data-code="${{row.code}}">${{row.code}}</td>
