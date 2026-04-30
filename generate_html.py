@@ -75,6 +75,10 @@ def build_html(history):
     .mode-badge {{ font-size: 0.72rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }}
     .mode-single {{ background: #1e3a5f; color: #60a5fa; }}
     .mode-multi {{ background: #1a3a2a; color: #4ade80; }}
+    .quick-btns {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }}
+    .qbtn {{ background: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 5px 14px; font-size: 0.78rem; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }}
+    .qbtn:hover {{ background: #1e3a5f; border-color: #3b82f6; color: #60a5fa; }}
+    .qbtn.active {{ background: #1e3a5f; border-color: #3b82f6; color: #60a5fa; font-weight: 600; }}
 
     /* Summary cards */
     .cards {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }}
@@ -198,6 +202,12 @@ def build_html(history):
     <span class="sep">→</span>
     <select id="sel-end"></select>
     <span id="mode-badge" class="mode-badge mode-single">單日</span>
+  </div>
+  <div class="quick-btns">
+    <button class="qbtn" data-days="5">近5天</button>
+    <button class="qbtn" data-days="10">近10天</button>
+    <button class="qbtn" data-days="20">近20天</button>
+    <button class="qbtn" data-days="0">最大區間</button>
   </div>
 
   <!-- 摘要卡片 -->
@@ -530,8 +540,29 @@ def build_html(history):
     renderRemoved(cmp.removed);
   }}
 
-  document.getElementById('sel-start').addEventListener('change', refresh);
-  document.getElementById('sel-end').addEventListener('change', refresh);
+  document.getElementById('sel-start').addEventListener('change', () => {{ setActiveQbtn(null); refresh(); }});
+  document.getElementById('sel-end').addEventListener('change', () => {{ setActiveQbtn(null); refresh(); }});
+
+  function setActiveQbtn(days) {{
+    document.querySelectorAll('.qbtn').forEach(b => b.classList.toggle('active', b.dataset.days === String(days)));
+  }}
+
+  document.querySelectorAll('.qbtn').forEach(btn => {{
+    btn.addEventListener('click', () => {{
+      const days = parseInt(btn.dataset.days);
+      const se = document.getElementById('sel-end');
+      const ss = document.getElementById('sel-start');
+      se.value = DATES[DATES.length - 1];
+      if (days === 0) {{
+        ss.value = DATES[0];
+      }} else {{
+        const idx = Math.max(0, DATES.length - days);
+        ss.value = DATES[idx];
+      }}
+      setActiveQbtn(days);
+      refresh();
+    }});
+  }});
 
   populateSelects();
   renderStreaks(streaks);
@@ -606,10 +637,13 @@ def build_html(history):
 
     // 標籤：最後標示的是最後持股日（非歸零點）
     const displayPts = isDeleted ? pts.slice(0, -1) : pts;
+    const delPt = isDeleted ? pts[pts.length - 1] : null;
+    const delLabel = delPt ? delPt.d.slice(4,6) + '/' + delPt.d.slice(6,8) : '';
+    const lastLabelX = isDeleted ? px(pts.length - 1).toFixed(1) : (W - pad.r);
     const labels = [
       `<text x="${{pad.l}}" y="${{H}}" font-size="9" fill="#475569" text-anchor="start">${{pts[0].d.slice(4,6)}}/${{pts[0].d.slice(6,8)}}</text>`,
       displayPts.length > 2 ? `<text x="${{(W/2).toFixed(0)}}" y="${{H}}" font-size="9" fill="#334155" text-anchor="middle">${{displayPts[Math.floor(displayPts.length/2)].d.slice(4,6)}}/${{displayPts[Math.floor(displayPts.length/2)].d.slice(6,8)}}</text>` : '',
-      `<text x="${{W - pad.r}}" y="${{H}}" font-size="9" fill="${{isDeleted?'#f87171':'#475569'}}" text-anchor="end">${{isDeleted?'已刪除':displayPts[displayPts.length-1].d.slice(4,6)+'/'+displayPts[displayPts.length-1].d.slice(6,8)}}</text>`,
+      `<text x="${{lastLabelX}}" y="${{H}}" font-size="9" fill="${{isDeleted?'#f87171':'#475569'}}" text-anchor="${{isDeleted?'middle':'end'}}">${{isDeleted?delLabel:displayPts[displayPts.length-1].d.slice(4,6)+'/'+displayPts[displayPts.length-1].d.slice(6,8)}}</text>`,
     ].join('');
 
     // meta 列：右側顯示「已刪除」
@@ -622,7 +656,7 @@ def build_html(history):
       <div class="spark-meta">
         <span>${{pts[0].z.toLocaleString()}} 張</span>
         <span class="${{diffCls}}">${{diffTxt}}</span>
-        <span class="${{isDeleted ? 'diff-neg' : ''}}">${{isDeleted ? '已刪除' : lastHeld.z.toLocaleString() + ' 張'}}</span>
+        <span class="${{isDeleted ? 'diff-neg' : ''}}">${{isDeleted ? '🗑 ' + delLabel : lastHeld.z.toLocaleString() + ' 張'}}</span>
       </div>
       <svg class="spark-svg" viewBox="0 0 ${{W}} ${{H}}" width="${{W}}" height="${{H}}">
         <polyline points="${{polyPts}}" fill="none" stroke="#3b82f6" stroke-width="2"
