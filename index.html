@@ -414,7 +414,8 @@
     el.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>代號</th><th>名稱</th><th>原張數</th><th>原權重</th></tr></thead>
       <tbody>${removed.map(r => `<tr>
-        <td class="code">${r.code}</td><td>${r.name}</td>
+        <td class="code" data-code="${r.code}">${r.code}</td>
+        <td class="name-cell" data-code="${r.code}" data-name="${r.name}">${r.name}</td>
         <td class="num neg">${fmtN(toZhang(r.shares))}</td>
         <td class="neg">${r.weight.toFixed(2)}%</td>
       </tr>`).join('')}</tbody>
@@ -563,7 +564,7 @@
   }
   function closeMenu() { menu.classList.remove('show'); }
 
-  document.getElementById('main-tbody').addEventListener('click', e => {
+  document.body.addEventListener('click', e => {
     const td = e.target.closest('td.name-cell');
     if (!td) return;
     e.stopPropagation();
@@ -577,7 +578,7 @@
   // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
   const toast = document.getElementById('copy-toast');
   let toastTimer;
-  document.getElementById('main-tbody').addEventListener('click', e => {
+  document.body.addEventListener('click', e => {
     const td = e.target.closest('td.code');
     if (!td) return;
     const code = td.dataset.code;
