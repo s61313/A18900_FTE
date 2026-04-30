@@ -77,6 +77,17 @@ def fetch_portfolio():
         driver.quit()
 
 
+def is_same_as_latest(rows):
+    """比對新資料與 latest.csv，完全相同回傳 True（代表休市/假日，無需寫檔）。"""
+    latest_path = os.path.join(OUTPUT_DIR, "49YTW_portfolio_latest.csv")
+    if not os.path.exists(latest_path):
+        return False
+    with open(latest_path, newline="", encoding="utf-8-sig") as f:
+        existing = list(csv.reader(f))[1:]  # 跳過 header
+    new = [list(r) for r in rows]
+    return existing == new
+
+
 def save_csv(rows):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     today = datetime.now().strftime("%Y%m%d")
@@ -100,6 +111,9 @@ def update_latest(rows):
 
 if __name__ == "__main__":
     rows = fetch_portfolio()
-    save_csv(rows)
-    update_latest(rows)
-    print("完成！")
+    if is_same_as_latest(rows):
+        print("⏭️  資料與前次相同（休市或假日），跳過寫檔。")
+    else:
+        save_csv(rows)
+        update_latest(rows)
+        print("完成！")
