@@ -29,6 +29,9 @@ jobs:
       - name: 抓取今日持股資料
         run: python fetch_49YTW.py
 
+      - name: 抓取今日權證清單
+        run: python fetch_warrants.py
+
       - name: 分析持股變化
         run: python analyze_diff.py
 

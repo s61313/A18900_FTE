@@ -7,6 +7,15 @@ REPORT_DIR = "reports"
 OUTPUT_FILE = "index.html"
 
 
+def load_latest_warrants() -> dict:
+    """載入最新一天的權證 JSON，找不到則回傳空字典。"""
+    files = sorted(glob.glob(os.path.join(DATA_DIR, "warrants_????????.json")))
+    if not files:
+        return {}
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
 def find_sorted_files():
     files = glob.glob(os.path.join(DATA_DIR, "49YTW_portfolio_????????.csv"))
     files.sort()
@@ -44,12 +53,13 @@ def get_latest_date_label(history):
     return f"{d[:4]}/{d[4:6]}/{d[6:]}"
 
 
-def build_html(history):
+def build_html(history, warrants):
     dates = sorted(history.keys())
     latest = dates[-1] if dates else ""
     date_label = f"{latest[:4]}/{latest[4:6]}/{latest[6:]}" if latest else ""
     history_json = json.dumps(history, ensure_ascii=False)
     dates_json = json.dumps(dates)
+    warrants_json = json.dumps(warrants, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -313,8 +323,9 @@ def build_html(history):
 <script>
 (function () {{
   // ── 歷史資料（Python 嵌入）──────────────────────────────
-  const HISTORY = {history_json};
-  const DATES   = {dates_json};  // ascending
+  const HISTORY  = {history_json};
+  const DATES    = {dates_json};  // ascending
+  const WARRANTS = {warrants_json}; // {{code: {{call:N, put:N}}}}
 
   // ── 工具函式 ─────────────────────────────────────────────
   function dateLabel(d) {{
@@ -724,46 +735,19 @@ def build_html(history):
   }});
   document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeMenu(); }});
 
-  // ── 權證比對 ──────────────────────────────────────────────
-  let warrantCache = null;
-
-  async function loadWarrantData() {{
-    if (warrantCache !== null) return warrantCache;
-    try {{
-      const r = await fetch('https://opendata.twse.com.tw/v1/derivatives/BWIBBU_d');
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const rows = await r.json();
-      warrantCache = {{}};
-      rows.forEach(w => {{
-        const rawCode = (w['標的證券代號'] || w['underlyingCode'] || '').trim();
-        if (!rawCode) return;
-        if (!warrantCache[rawCode]) warrantCache[rawCode] = {{ call: 0, put: 0 }};
-        const t = w['認購或認售'] || w['callPut'] || '';
-        if (t === '認購') warrantCache[rawCode].call++;
-        else if (t === '認售') warrantCache[rawCode].put++;
-      }});
-    }} catch (e) {{
-      warrantCache = {{}};
-    }}
-    return warrantCache;
-  }}
-
-  async function renderWarrantPanel() {{
+  // ── 權證比對（資料已由 Python 於每日更新時嵌入）───────────
+  function renderWarrantPanel() {{
     const sec  = document.getElementById('warrant-sec');
     const body = document.getElementById('warrant-body');
     const stat = document.getElementById('warrant-status');
     sec.classList.add('show');
-    body.innerHTML = '<p class="wt-loading">資料載入中，請稍候…</p>';
-    stat.textContent = '載入中';
     sec.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
 
-    const wmap = await loadWarrantData();
     const latestDay = HISTORY[DATES[DATES.length - 1]] || {{}};
-
     const entries = Object.entries(latestDay).map(([code, s]) => ({{
       code, name: s.name, weight: s.weight,
-      call: wmap[code]?.call ?? 0,
-      put:  wmap[code]?.put  ?? 0,
+      call: WARRANTS[code]?.call ?? 0,
+      put:  WARRANTS[code]?.put  ?? 0,
     }}));
 
     const withW = entries.filter(e => e.call > 0 || e.put > 0);
@@ -772,8 +756,8 @@ def build_html(history):
 
     stat.textContent = withW.length + ' 檔有權證 / ' + entries.length + ' 檔';
 
-    if (entries.length > 0 && Object.keys(wmap).length === 0) {{
-      body.innerHTML = '<p class="wt-err">⚠ 無法取得權證資料（API 連線失敗，請確認網路連線）</p>';
+    if (Object.keys(WARRANTS).length === 0) {{
+      body.innerHTML = '<p class="wt-err">⚠ 今日尚無權證資料（待每日自動更新後顯示）</p>';
       return;
     }}
 
@@ -833,7 +817,12 @@ def main():
     if not history:
         print("找不到持股 CSV，跳過。")
         return
-    html = build_html(history)
+    warrants = load_latest_warrants()
+    if warrants:
+        print(f"載入權證資料：{len(warrants)} 檔標的有權證")
+    else:
+        print("找不到權證 JSON，權證欄位將顯示為空（請先執行 fetch_warrants.py）")
+    html = build_html(history, warrants)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"已產生 {OUTPUT_FILE}（{len(history)} 個日期）")
