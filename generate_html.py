@@ -738,7 +738,7 @@ def build_html(history, warrants, warrants_history):
     document.getElementById('menu-overview').href            = base;
     document.getElementById('menu-major').href               = base + '/major-investors/concentration';
     document.getElementById('menu-trend').href               = base + '/major-investors/main-trend';
-    document.getElementById('menu-warrant').href             = 'https://histock.tw/stock/warrantstats.aspx?no=' + code;
+    document.getElementById('menu-warrant').href             = 'https://histock.tw/stock/warrant.aspx?no=' + code;
     // 定位：避免跑出視窗右側/下方
     menu.style.left = '0'; menu.style.top = '0';
     menu.classList.add('show');
@@ -820,7 +820,7 @@ def build_html(history, warrants, warrants_history):
     }}
 
     const trows = withW.map(e => {{
-      const wlink = 'https://histock.tw/stock/warrantstats.aspx?no=' + e.code;
+      const wlink = 'https://histock.tw/stock/warrant.aspx?no=' + e.code;
       const callCell = e.call > 0 ? `<span class="wt-call">認購 ${{e.call}}</span>` : '<span class="wt-none">—</span>';
       const putCell  = e.put  > 0 ? `<span class="wt-put">認售 ${{e.put}}</span>`  : '<span class="wt-none">—</span>';
       return `<tr>
