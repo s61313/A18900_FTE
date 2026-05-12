@@ -116,6 +116,11 @@ def fetch_warrants() -> dict:
                 print(f"嘗試失敗 {url}: {last_err}")
                 continue
 
+            # 一次性印出第一筆完整紀錄，方便確認實際欄位名
+            if isinstance(rows[0], dict):
+                print(f"[debug] 第一筆紀錄欄位：{list(rows[0].keys())}")
+                print(f"[debug] 第一筆紀錄內容：{rows[0]}")
+
             wmap: dict = {}
             for w in rows:
                 if not isinstance(w, dict):
