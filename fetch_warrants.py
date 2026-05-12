@@ -22,6 +22,7 @@ CANDIDATE_URLS = [
 
 UNDERLYING_KEYS = (
     "標的代號",
+    "標的證券/指數",
     "標的證券代號",
     "underlyingCode",
     "UnderlyingCode",
@@ -33,6 +34,8 @@ CALLPUT_KEYS = (
     "callPut",
     "CallPut",
 )
+
+WARRANT_CODE_KEYS = ("權證代號", "warrantCode", "WarrantCode")
 
 
 def _classify(record: dict) -> str:
@@ -46,7 +49,11 @@ def _classify(record: dict) -> str:
         if "售" in v or v.lower() in ("p", "put"):
             return "put"
     # 後備：以權證代號第二字元推斷（TWSE 慣例：英文字母多為認售）
-    wcode = (record.get("權證代號") or record.get("warrantCode") or "").strip()
+    wcode = ""
+    for k in WARRANT_CODE_KEYS:
+        wcode = (record.get(k) or "").strip()
+        if wcode:
+            break
     if len(wcode) >= 2 and wcode[0] == "0":
         c = wcode[1].upper()
         if c.isalpha():
@@ -54,6 +61,21 @@ def _classify(record: dict) -> str:
         if c.isdigit():
             return "call"
     return ""
+
+
+def _extract_list(payload):
+    """把回應正規化成 records list。處理直接 list 或 dict 包裝兩種格式。"""
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        # TWSE rwd 風格：{"fields":[...], "data":[[...]]}
+        fields = payload.get("fields") or payload.get("Fields")
+        data = payload.get("data") or payload.get("Data")
+        if fields and isinstance(data, list) and data and isinstance(data[0], list):
+            return [dict(zip(fields, row)) for row in data]
+        if isinstance(data, list):
+            return data
+    return []
 
 
 def fetch_warrants() -> dict:
@@ -69,16 +91,35 @@ def fetch_warrants() -> dict:
                         "Chrome/124.0 Safari/537.36"
                     ),
                     "Accept": "application/json,*/*",
+                    "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+                    "Referer": "https://openapi.twse.com.tw/",
                 },
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
-                rows = json.loads(resp.read().decode("utf-8"))
+                status = resp.status
+                body = resp.read().decode("utf-8", errors="replace")
+                print(f"[debug] {url} → HTTP {status}, {len(body)} bytes")
 
-            if not isinstance(rows, list) or not rows:
+            try:
+                payload = json.loads(body)
+            except json.JSONDecodeError as e:
+                last_err = f"JSON 解析失敗：{e}；前 200 字：{body[:200]!r}"
+                print(f"嘗試失敗 {url}: {last_err}")
+                continue
+
+            rows = _extract_list(payload)
+            if not rows:
+                last_err = (
+                    f"回應非預期格式或為空（type={type(payload).__name__}）；"
+                    f"前 200 字：{body[:200]!r}"
+                )
+                print(f"嘗試失敗 {url}: {last_err}")
                 continue
 
             wmap: dict = {}
             for w in rows:
+                if not isinstance(w, dict):
+                    continue
                 code = ""
                 for k in UNDERLYING_KEYS:
                     code = (w.get(k) or "").strip()
@@ -92,12 +133,18 @@ def fetch_warrants() -> dict:
                     bucket[t] += 1
 
             if wmap:
-                print(f"成功（{url}）")
+                print(f"成功（{url}）解析 {len(rows)} 筆，覆蓋 {len(wmap)} 檔標的")
                 return wmap
 
+            last_err = (
+                f"已取得 {len(rows)} 筆紀錄但無法萃取標的代號；"
+                f"首筆 keys={list(rows[0].keys()) if isinstance(rows[0], dict) else '非 dict'}"
+            )
+            print(f"嘗試失敗 {url}: {last_err}")
+
         except Exception as e:
-            print(f"嘗試失敗 {url}: {e}")
-            last_err = e
+            last_err = f"{type(e).__name__}: {e}"
+            print(f"嘗試失敗 {url}: {last_err}")
             continue
 
     raise RuntimeError(f"所有 URL 均失敗，最後錯誤：{last_err}")
