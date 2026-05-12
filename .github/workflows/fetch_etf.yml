@@ -35,6 +35,9 @@ jobs:
       - name: 分析持股變化
         run: python analyze_diff.py
 
+      - name: 分析權證檔數變化
+        run: python analyze_warrant_diff.py
+
       - name: 產生 GitHub Pages 網頁
         run: python generate_html.py
 
