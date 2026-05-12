@@ -146,6 +146,7 @@ def build_html(history, warrants):
     .streak-tag.buy {{ background: #14532d; color: #4ade80; }}
     .streak-tag.sell {{ background: #450a0a; color: #f87171; }}
     .badge-new {{ font-size: 0.68rem; background: #1e3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 6px; }}
+    .badge-w {{ font-size: 0.65rem; font-weight: 700; background: #422006; color: #fb923c; border-radius: 4px; padding: 1px 5px; margin-left: 5px; vertical-align: middle; }}
 
     .empty {{ color: #475569; padding: 14px 20px; font-style: italic; font-size: 0.82rem; }}
     footer {{ text-align: center; padding: 20px; color: #475569; font-size: 0.75rem; }}
@@ -473,6 +474,10 @@ def build_html(history, warrants):
       const stkTag = (stk && stk.count >= 2)
         ? `<span class="streak-tag ${{stk.dir==='buy'?'buy':'sell'}}">連${{stk.count}}${{stk.dir==='buy'?'買':'賣'}}</span>`
         : '';
+      const wt = WARRANTS[row.code];
+      const wtTag = (wt && (wt.call > 0 || wt.put > 0))
+        ? `<span class="badge-w" title="認購 ${{wt.call}} / 認售 ${{wt.put}}">權</span>`
+        : '';
 
       // 張數變化欄
       const zdiff = row.isAdded
@@ -490,7 +495,7 @@ def build_html(history, warrants):
 
       return `<tr>
         <td class="code" data-sort="${{row.code}}" data-code="${{row.code}}">${{row.code}}</td>
-        <td class="name-cell" data-sort="${{row.name}}" data-code="${{row.code}}" data-name="${{row.name}}">${{row.name}}</td>
+        <td class="name-cell" data-sort="${{row.name}}" data-code="${{row.code}}" data-name="${{row.name}}">${{row.name}}${{wtTag}}</td>
         <td class="num" data-sort="${{zhang}}">${{fmtN(zhang)}}</td>
         <td data-sort="${{row.weight}}">
           <div class="w-wrap">
@@ -735,6 +740,21 @@ def build_html(history, warrants):
   }});
   document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeMenu(); }});
 
+  // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
+  const toast = document.getElementById('copy-toast');
+  let toastTimer;
+  document.body.addEventListener('click', e => {{
+    const td = e.target.closest('td.code');
+    if (!td) return;
+    const code = td.dataset.code;
+    navigator.clipboard.writeText(code).then(() => {{
+      clearTimeout(toastTimer);
+      toast.textContent = `已複製 ${{code}}`;
+      toast.style.opacity = '1';
+      toastTimer = setTimeout(() => {{ toast.style.opacity = '0'; }}, 1800);
+    }});
+  }});
+
   // ── 權證比對（資料已由 Python 於每日更新時嵌入）───────────
   function renderWarrantPanel() {{
     const sec  = document.getElementById('warrant-sec');
@@ -790,21 +810,6 @@ def build_html(history, warrants):
   document.getElementById('warrant-btn').addEventListener('click', renderWarrantPanel);
   document.getElementById('warrant-close').addEventListener('click', () => {{
     document.getElementById('warrant-sec').classList.remove('show');
-  }});
-
-  // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
-  const toast = document.getElementById('copy-toast');
-  let toastTimer;
-  document.body.addEventListener('click', e => {{
-    const td = e.target.closest('td.code');
-    if (!td) return;
-    const code = td.dataset.code;
-    navigator.clipboard.writeText(code).then(() => {{
-      clearTimeout(toastTimer);
-      toast.textContent = `已複製 ${{code}}`;
-      toast.style.opacity = '1';
-      toastTimer = setTimeout(() => {{ toast.style.opacity = '0'; }}, 1800);
-    }});
   }});
 }})();
 </script>
