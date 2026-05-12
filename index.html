@@ -133,6 +133,17 @@
       th, td { padding: 6px 9px; }
       .controls { gap: 8px; }
     }
+
+    /* 權證比對 */
+    #warrant-sec { display: none; }
+    #warrant-sec.show { display: block; }
+    .wt-call { background: #1a3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }
+    .wt-put  { background: #3a1a2a; color: #f472b6; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }
+    .wt-none { color: #334155; }
+    .wt-link { color: #64748b; font-size: 0.8rem; text-decoration: none; padding: 2px 8px; border: 1px solid #334155; border-radius: 6px; }
+    .wt-link:hover { color: #e2e8f0; border-color: #64748b; }
+    .wt-loading { color: #64748b; padding: 24px; text-align: center; font-size: 0.84rem; font-style: italic; }
+    .wt-err { color: #f87171; padding: 14px 20px; font-size: 0.82rem; }
   </style>
 </head>
 <body>
@@ -155,6 +166,7 @@
     <button class="qbtn" data-days="10">近10天</button>
     <button class="qbtn" data-days="20">近20天</button>
     <button class="qbtn" data-days="0">最大區間</button>
+    <button class="qbtn" id="warrant-btn">🔖 權證比對</button>
   </div>
 
   <!-- 摘要卡片 -->
@@ -208,6 +220,17 @@
     <div id="removed-body"></div>
   </section>
 
+  <!-- 權證比對 -->
+  <section id="warrant-sec">
+    <div class="sec-header">
+      <h2>🔖 權證比對</h2>
+      <span class="count" id="warrant-status">—</span>
+      <span class="hint">資料來源：台灣證交所開放資料</span>
+      <button class="qbtn" id="warrant-close" style="margin-left:auto">關閉</button>
+    </div>
+    <div id="warrant-body" class="table-wrap"></div>
+  </section>
+
 </main>
 <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日 18:00 自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
@@ -224,6 +247,9 @@
     </a>
     <a id="menu-trend" href="#" target="_blank" rel="noopener">
       <span class="menu-icon">📈</span>主力動向
+    </a>
+    <a id="menu-warrant" href="#" target="_blank" rel="noopener">
+      <span class="menu-icon">🔖</span>相關權證
     </a>
   </div>
 </div>
@@ -623,6 +649,7 @@
     document.getElementById('menu-overview').href            = base;
     document.getElementById('menu-major').href               = base + '/major-investors/concentration';
     document.getElementById('menu-trend').href               = base + '/major-investors/main-trend';
+    document.getElementById('menu-warrant').href             = 'https://www.twse.com.tw/zh/warrant/search?underlyingCode=' + code;
     // 定位：避免跑出視窗右側/下方
     menu.style.left = '0'; menu.style.top = '0';
     menu.classList.add('show');
@@ -643,6 +670,90 @@
     if (!menu.contains(e.target)) closeMenu();
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  // ── 權證比對 ──────────────────────────────────────────────
+  let warrantCache = null;
+
+  async function loadWarrantData() {
+    if (warrantCache !== null) return warrantCache;
+    try {
+      const r = await fetch('https://opendata.twse.com.tw/v1/derivatives/BWIBBU_d');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const rows = await r.json();
+      warrantCache = {};
+      rows.forEach(w => {
+        const rawCode = (w['標的證券代號'] || w['underlyingCode'] || '').trim();
+        if (!rawCode) return;
+        if (!warrantCache[rawCode]) warrantCache[rawCode] = { call: 0, put: 0 };
+        const t = w['認購或認售'] || w['callPut'] || '';
+        if (t === '認購') warrantCache[rawCode].call++;
+        else if (t === '認售') warrantCache[rawCode].put++;
+      });
+    } catch (e) {
+      warrantCache = {};
+    }
+    return warrantCache;
+  }
+
+  async function renderWarrantPanel() {
+    const sec  = document.getElementById('warrant-sec');
+    const body = document.getElementById('warrant-body');
+    const stat = document.getElementById('warrant-status');
+    sec.classList.add('show');
+    body.innerHTML = '<p class="wt-loading">資料載入中，請稍候…</p>';
+    stat.textContent = '載入中';
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const wmap = await loadWarrantData();
+    const latestDay = HISTORY[DATES[DATES.length - 1]] || {};
+
+    const entries = Object.entries(latestDay).map(([code, s]) => ({
+      code, name: s.name, weight: s.weight,
+      call: wmap[code]?.call ?? 0,
+      put:  wmap[code]?.put  ?? 0,
+    }));
+
+    const withW = entries.filter(e => e.call > 0 || e.put > 0);
+    const noW   = entries.filter(e => e.call === 0 && e.put === 0);
+    withW.sort((a, b) => (b.call + b.put) - (a.call + a.put));
+
+    stat.textContent = withW.length + ' 檔有權證 / ' + entries.length + ' 檔';
+
+    if (entries.length > 0 && Object.keys(wmap).length === 0) {
+      body.innerHTML = '<p class="wt-err">⚠ 無法取得權證資料（API 連線失敗，請確認網路連線）</p>';
+      return;
+    }
+
+    const trows = withW.map(e => {
+      const wlink = 'https://www.twse.com.tw/zh/warrant/search?underlyingCode=' + e.code;
+      const callCell = e.call > 0 ? `<span class="wt-call">認購 ${e.call}</span>` : '<span class="wt-none">—</span>';
+      const putCell  = e.put  > 0 ? `<span class="wt-put">認售 ${e.put}</span>`  : '<span class="wt-none">—</span>';
+      return `<tr>
+        <td class="code" data-code="${e.code}">${e.code}</td>
+        <td class="name-cell" data-code="${e.code}" data-name="${e.name}">${e.name}</td>
+        <td class="num">${e.weight.toFixed(2)}%</td>
+        <td class="num">${callCell}</td>
+        <td class="num">${putCell}</td>
+        <td><a class="wt-link" href="${wlink}" target="_blank" rel="noopener">查看 →</a></td>
+      </tr>`;
+    }).join('');
+
+    body.innerHTML = `<table>
+      <thead><tr>
+        <th>代號</th><th>名稱</th><th class="num">持股權重</th>
+        <th class="num">認購</th><th class="num">認售</th><th>連結</th>
+      </tr></thead>
+      <tbody>${trows || '<tr><td colspan="6" style="padding:14px 20px;color:#475569;font-style:italic">本日無上市認購售權證</td></tr>'}</tbody>
+    </table>
+    <p style="padding:8px 14px 12px;font-size:0.72rem;color:#475569;">
+      另 ${noW.length} 檔目前無上市認購售權證 &nbsp;·&nbsp; 資料來源：台灣證交所開放資料
+    </p>`;
+  }
+
+  document.getElementById('warrant-btn').addEventListener('click', renderWarrantPanel);
+  document.getElementById('warrant-close').addEventListener('click', () => {
+    document.getElementById('warrant-sec').classList.remove('show');
+  });
 
   // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
   const toast = document.getElementById('copy-toast');
