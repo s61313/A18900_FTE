@@ -42,9 +42,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-          git add data/ || true
-          git add reports/ || true
-          git add index.html || true
+          git add data/ reports/ index.html 2>/dev/null || true
           git diff --cached --quiet || git commit -m "📊 $(date +'%Y-%m-%d') 49YTW 持股更新與變化報告"
-          git push
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin main && break
+            echo "push 第 $i 次失敗，3 秒後重試..."
+            sleep 3
+          done
