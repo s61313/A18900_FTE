@@ -16,6 +16,19 @@ def load_latest_warrants() -> dict:
         return json.load(f)
 
 
+def load_all_warrants_history() -> dict:
+    """載入所有 warrants_*.json → {date_str: {code: {call,put}}}。"""
+    history = {}
+    for f in sorted(glob.glob(os.path.join(DATA_DIR, "warrants_????????.json"))):
+        date = os.path.basename(f).replace("warrants_", "").replace(".json", "")
+        with open(f, encoding="utf-8") as fp:
+            try:
+                history[date] = json.load(fp)
+            except json.JSONDecodeError:
+                continue
+    return history
+
+
 def find_sorted_files():
     files = glob.glob(os.path.join(DATA_DIR, "49YTW_portfolio_????????.csv"))
     files.sort()
@@ -53,13 +66,15 @@ def get_latest_date_label(history):
     return f"{d[:4]}/{d[4:6]}/{d[6:]}"
 
 
-def build_html(history, warrants):
+def build_html(history, warrants, warrants_history):
     dates = sorted(history.keys())
     latest = dates[-1] if dates else ""
     date_label = f"{latest[:4]}/{latest[4:6]}/{latest[6:]}" if latest else ""
     history_json = json.dumps(history, ensure_ascii=False)
     dates_json = json.dumps(dates)
     warrants_json = json.dumps(warrants, ensure_ascii=False)
+    warrants_history_json = json.dumps(warrants_history, ensure_ascii=False)
+    warrant_dates_json = json.dumps(sorted(warrants_history.keys()))
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -203,6 +218,9 @@ def build_html(history, warrants):
     #warrant-sec.show {{ display: block; }}
     .wt-call {{ background: #1a3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }}
     .wt-put  {{ background: #3a1a2a; color: #f472b6; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }}
+    .wt-up   {{ color: #4ade80; font-weight: 700; font-size: 0.78rem; }}
+    .wt-down {{ color: #f87171; font-weight: 700; font-size: 0.78rem; }}
+    .wt-flat {{ color: #64748b; font-size: 0.78rem; }}
     .wt-none {{ color: #334155; }}
     .wt-link {{ color: #64748b; font-size: 0.8rem; text-decoration: none; padding: 2px 8px; border: 1px solid #334155; border-radius: 6px; }}
     .wt-link:hover {{ color: #e2e8f0; border-color: #64748b; }}
@@ -326,7 +344,9 @@ def build_html(history, warrants):
   // ── 歷史資料（Python 嵌入）──────────────────────────────
   const HISTORY  = {history_json};
   const DATES    = {dates_json};  // ascending
-  const WARRANTS = {warrants_json}; // {{code: {{call:N, put:N}}}}
+  const WARRANTS = {warrants_json}; // {{code: {{call:N, put:N}}}}（最新日，向後相容）
+  const WARRANTS_HISTORY = {warrants_history_json}; // {{date: {{code: {{call,put}}}}}}
+  const WARRANT_DATES = {warrant_dates_json};       // ascending
 
   // ── 工具函式 ─────────────────────────────────────────────
   function dateLabel(d) {{
@@ -764,11 +784,21 @@ def build_html(history, warrants):
     sec.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
 
     const latestDay = HISTORY[DATES[DATES.length - 1]] || {{}};
-    const entries = Object.entries(latestDay).map(([code, s]) => ({{
-      code, name: s.name, weight: s.weight,
-      call: WARRANTS[code]?.call ?? 0,
-      put:  WARRANTS[code]?.put  ?? 0,
-    }}));
+    const today = WARRANT_DATES[WARRANT_DATES.length - 1];
+    const prev  = WARRANT_DATES.length >= 2 ? WARRANT_DATES[WARRANT_DATES.length - 2] : null;
+    const todayW = (today && WARRANTS_HISTORY[today]) || WARRANTS || {{}};
+    const prevW  = (prev  && WARRANTS_HISTORY[prev])  || {{}};
+
+    const entries = Object.entries(latestDay).map(([code, s]) => {{
+      const t = todayW[code] || {{call: 0, put: 0}};
+      const p = prevW[code]  || {{call: 0, put: 0}};
+      return {{
+        code, name: s.name, weight: s.weight,
+        call: t.call, put: t.put,
+        dCall: t.call - p.call,
+        dPut:  t.put  - p.put,
+      }};
+    }});
 
     const withW = entries.filter(e => e.call > 0 || e.put > 0);
     const noW   = entries.filter(e => e.call === 0 && e.put === 0);
@@ -776,9 +806,17 @@ def build_html(history, warrants):
 
     stat.textContent = withW.length + ' 檔有權證 / ' + entries.length + ' 檔';
 
-    if (Object.keys(WARRANTS).length === 0) {{
+    if (Object.keys(todayW).length === 0) {{
       body.innerHTML = '<p class="wt-err">⚠ 今日尚無權證資料（待每日自動更新後顯示）</p>';
       return;
+    }}
+
+    function deltaTag(d) {{
+      if (!prev) return '<span class="wt-none">—</span>';
+      if (d === 0) return '<span class="wt-flat">±0</span>';
+      const cls = d > 0 ? 'wt-up' : 'wt-down';
+      const txt = (d > 0 ? '+' : '') + d;
+      return `<span class="${{cls}}">${{txt}}</span>`;
     }}
 
     const trows = withW.map(e => {{
@@ -790,17 +828,21 @@ def build_html(history, warrants):
         <td class="name-cell" data-code="${{e.code}}" data-name="${{e.name}}">${{e.name}}</td>
         <td class="num">${{e.weight.toFixed(2)}}%</td>
         <td class="num">${{callCell}}</td>
+        <td class="num">${{deltaTag(e.dCall)}}</td>
         <td class="num">${{putCell}}</td>
+        <td class="num">${{deltaTag(e.dPut)}}</td>
         <td><a class="wt-link" href="${{wlink}}" target="_blank" rel="noopener">查看 →</a></td>
       </tr>`;
     }}).join('');
 
+    const prevLabel = prev ? dateLabel(prev) : '—';
     body.innerHTML = `<table>
       <thead><tr>
         <th>代號</th><th>名稱</th><th class="num">持股權重</th>
-        <th class="num">認購</th><th class="num">認售</th><th>連結</th>
+        <th class="num">認購</th><th class="num">Δ vs ${{prevLabel}}</th>
+        <th class="num">認售</th><th class="num">Δ vs ${{prevLabel}}</th><th>連結</th>
       </tr></thead>
-      <tbody>${{trows || '<tr><td colspan="6" style="padding:14px 20px;color:#475569;font-style:italic">本日無上市認購售權證</td></tr>'}}</tbody>
+      <tbody>${{trows || '<tr><td colspan="8" style="padding:14px 20px;color:#475569;font-style:italic">本日無上市認購售權證</td></tr>'}}</tbody>
     </table>
     <p style="padding:8px 14px 12px;font-size:0.72rem;color:#475569;">
       另 ${{noW.length}} 檔目前無上市認購售權證 &nbsp;·&nbsp; 資料來源：台灣證交所開放資料
@@ -823,11 +865,12 @@ def main():
         print("找不到持股 CSV，跳過。")
         return
     warrants = load_latest_warrants()
+    warrants_history = load_all_warrants_history()
     if warrants:
-        print(f"載入權證資料：{len(warrants)} 檔標的有權證")
+        print(f"載入權證資料：{len(warrants)} 檔標的有權證；歷史 {len(warrants_history)} 天")
     else:
         print("找不到權證 JSON，權證欄位將顯示為空（請先執行 fetch_warrants.py）")
-    html = build_html(history, warrants)
+    html = build_html(history, warrants, warrants_history)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"已產生 {OUTPUT_FILE}（{len(history)} 個日期）")
