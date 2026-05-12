@@ -2,7 +2,7 @@
 """
 台灣證交所 認購售權證清單 自動抓取腳本
 每個交易日由 GitHub Actions 執行，將結果存為 data/warrants_YYYYMMDD.json
-格式：{"股票代號": {"call": N, "put": N}, ...}
+格式：{"標的證券代號": {"call": N, "put": N}, ...}
 """
 
 import json
@@ -13,62 +13,83 @@ from datetime import datetime
 
 DATA_DIR = "data"
 
-# 依序嘗試，第一個成功即停止
+# TWSE OpenAPI：上市權證基本資料彙總表（每日更新）
+# 過往的 BWIBBU_d 是個股本益比/殖利率/股價淨值比，並非權證；
+# 過往的 opendata.twse.com.tw 域名不存在（正確是 openapi）。
 CANDIDATE_URLS = [
-    "https://www.twse.com.tw/rwd/zh/call-warrant/BWIBBU_d?response=json",
-    "https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=json&date={date}",
-    "https://opendata.twse.com.tw/v1/exchange/BWIBBU_d",
-    "https://opendata.twse.com.tw/v1/derivatives/BWIBBU_d",
+    "https://openapi.twse.com.tw/v1/opendata/t187ap37_L",
 ]
 
+UNDERLYING_KEYS = (
+    "標的代號",
+    "標的證券代號",
+    "underlyingCode",
+    "UnderlyingCode",
+)
 
-def _parse_rows(data: object) -> list:
-    """將不同格式的 TWSE 回應統一轉為 [{field: value}] 列表。"""
-    if isinstance(data, list):
-        return data  # opendata 格式：直接是物件陣列
-    if isinstance(data, dict):
-        stat = data.get("stat", "")
-        if stat not in ("OK", "ok", ""):
-            raise ValueError(f"API 回傳 stat={stat!r}")
-        fields = data.get("fields") or data.get("Fields") or []
-        rows   = data.get("data")   or data.get("Data")   or []
-        if fields and rows:
-            return [dict(zip(fields, row)) for row in rows]
-    return []
+CALLPUT_KEYS = (
+    "認購或認售",
+    "認購售型態",
+    "callPut",
+    "CallPut",
+)
+
+
+def _classify(record: dict) -> str:
+    """回傳 'call' / 'put' / ''（無法判別）。"""
+    for k in CALLPUT_KEYS:
+        v = (record.get(k) or "").strip()
+        if not v:
+            continue
+        if "購" in v or v.lower() in ("c", "call"):
+            return "call"
+        if "售" in v or v.lower() in ("p", "put"):
+            return "put"
+    # 後備：以權證代號第二字元推斷（TWSE 慣例：英文字母多為認售）
+    wcode = (record.get("權證代號") or record.get("warrantCode") or "").strip()
+    if len(wcode) >= 2 and wcode[0] == "0":
+        c = wcode[1].upper()
+        if c.isalpha():
+            return "put"
+        if c.isdigit():
+            return "call"
+    return ""
 
 
 def fetch_warrants() -> dict:
-    today = datetime.now().strftime("%Y%m%d")
     last_err = None
-
-    for url_tpl in CANDIDATE_URLS:
-        url = url_tpl.format(date=today)
+    for url in CANDIDATE_URLS:
         try:
             req = urllib.request.Request(
                 url,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; ETF-tracker/1.0)"},
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0 Safari/537.36"
+                    ),
+                    "Accept": "application/json,*/*",
+                },
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
-                raw = json.loads(resp.read().decode("utf-8"))
+                rows = json.loads(resp.read().decode("utf-8"))
 
-            rows = _parse_rows(raw)
-            if not rows:
-                continue  # 空回應，試下一個 URL
+            if not isinstance(rows, list) or not rows:
+                continue
 
             wmap: dict = {}
             for w in rows:
-                code = (
-                    w.get("標的證券代號") or w.get("underlyingCode") or ""
-                ).strip()
+                code = ""
+                for k in UNDERLYING_KEYS:
+                    code = (w.get(k) or "").strip()
+                    if code:
+                        break
                 if not code:
                     continue
-                if code not in wmap:
-                    wmap[code] = {"call": 0, "put": 0}
-                t = (w.get("認購或認售") or w.get("callPut") or "").strip()
-                if t == "認購":
-                    wmap[code]["call"] += 1
-                elif t == "認售":
-                    wmap[code]["put"] += 1
+                bucket = wmap.setdefault(code, {"call": 0, "put": 0})
+                t = _classify(w)
+                if t:
+                    bucket[t] += 1
 
             if wmap:
                 print(f"成功（{url}）")
