@@ -42,9 +42,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add data/ || true
           git add reports/ || true
           git add index.html || true
           git diff --cached --quiet || git commit -m "📊 $(date +'%Y-%m-%d') 49YTW 持股更新與變化報告"
-          git pull --rebase origin main
           git push
