@@ -7,6 +7,15 @@ REPORT_DIR = "reports"
 OUTPUT_FILE = "index.html"
 
 
+def load_latest_warrants() -> dict:
+    """載入最新一天的權證 JSON，找不到則回傳空字典。"""
+    files = sorted(glob.glob(os.path.join(DATA_DIR, "warrants_????????.json")))
+    if not files:
+        return {}
+    with open(files[-1], encoding="utf-8") as f:
+        return json.load(f)
+
+
 def find_sorted_files():
     files = glob.glob(os.path.join(DATA_DIR, "49YTW_portfolio_????????.csv"))
     files.sort()
@@ -44,12 +53,13 @@ def get_latest_date_label(history):
     return f"{d[:4]}/{d[4:6]}/{d[6:]}"
 
 
-def build_html(history):
+def build_html(history, warrants):
     dates = sorted(history.keys())
     latest = dates[-1] if dates else ""
     date_label = f"{latest[:4]}/{latest[4:6]}/{latest[6:]}" if latest else ""
     history_json = json.dumps(history, ensure_ascii=False)
     dates_json = json.dumps(dates)
+    warrants_json = json.dumps(warrants, ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
@@ -186,6 +196,17 @@ def build_html(history):
       th, td {{ padding: 6px 9px; }}
       .controls {{ gap: 8px; }}
     }}
+
+    /* 權證比對 */
+    #warrant-sec {{ display: none; }}
+    #warrant-sec.show {{ display: block; }}
+    .wt-call {{ background: #1a3a5f; color: #60a5fa; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }}
+    .wt-put  {{ background: #3a1a2a; color: #f472b6; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; display: inline-block; }}
+    .wt-none {{ color: #334155; }}
+    .wt-link {{ color: #64748b; font-size: 0.8rem; text-decoration: none; padding: 2px 8px; border: 1px solid #334155; border-radius: 6px; }}
+    .wt-link:hover {{ color: #e2e8f0; border-color: #64748b; }}
+    .wt-loading {{ color: #64748b; padding: 24px; text-align: center; font-size: 0.84rem; font-style: italic; }}
+    .wt-err {{ color: #f87171; padding: 14px 20px; font-size: 0.82rem; }}
   </style>
 </head>
 <body>
@@ -208,6 +229,7 @@ def build_html(history):
     <button class="qbtn" data-days="10">近10天</button>
     <button class="qbtn" data-days="20">近20天</button>
     <button class="qbtn" data-days="0">最大區間</button>
+    <button class="qbtn" id="warrant-btn">🔖 權證比對</button>
   </div>
 
   <!-- 摘要卡片 -->
@@ -261,6 +283,17 @@ def build_html(history):
     <div id="removed-body"></div>
   </section>
 
+  <!-- 權證比對 -->
+  <section id="warrant-sec">
+    <div class="sec-header">
+      <h2>🔖 權證比對</h2>
+      <span class="count" id="warrant-status">—</span>
+      <span class="hint">資料來源：台灣證交所開放資料</span>
+      <button class="qbtn" id="warrant-close" style="margin-left:auto">關閉</button>
+    </div>
+    <div id="warrant-body" class="table-wrap"></div>
+  </section>
+
 </main>
 <footer>資料來源：49YTW 基金 &nbsp;·&nbsp; 每個交易日 18:00 自動更新 &nbsp;·&nbsp; 張數 = 股數 ÷ 1,000</footer>
 
@@ -278,6 +311,9 @@ def build_html(history):
     <a id="menu-trend" href="#" target="_blank" rel="noopener">
       <span class="menu-icon">📈</span>主力動向
     </a>
+    <a id="menu-warrant" href="#" target="_blank" rel="noopener">
+      <span class="menu-icon">🔖</span>相關權證
+    </a>
   </div>
 </div>
 
@@ -287,8 +323,9 @@ def build_html(history):
 <script>
 (function () {{
   // ── 歷史資料（Python 嵌入）──────────────────────────────
-  const HISTORY = {history_json};
-  const DATES   = {dates_json};  // ascending
+  const HISTORY  = {history_json};
+  const DATES    = {dates_json};  // ascending
+  const WARRANTS = {warrants_json}; // {{code: {{call:N, put:N}}}}
 
   // ── 工具函式 ─────────────────────────────────────────────
   function dateLabel(d) {{
@@ -676,6 +713,7 @@ def build_html(history):
     document.getElementById('menu-overview').href            = base;
     document.getElementById('menu-major').href               = base + '/major-investors/concentration';
     document.getElementById('menu-trend').href               = base + '/major-investors/main-trend';
+    document.getElementById('menu-warrant').href             = 'https://www.twse.com.tw/zh/warrant/search?underlyingCode=' + code;
     // 定位：避免跑出視窗右側/下方
     menu.style.left = '0'; menu.style.top = '0';
     menu.classList.add('show');
@@ -696,6 +734,63 @@ def build_html(history):
     if (!menu.contains(e.target)) closeMenu();
   }});
   document.addEventListener('keydown', e => {{ if (e.key === 'Escape') closeMenu(); }});
+
+  // ── 權證比對（資料已由 Python 於每日更新時嵌入）───────────
+  function renderWarrantPanel() {{
+    const sec  = document.getElementById('warrant-sec');
+    const body = document.getElementById('warrant-body');
+    const stat = document.getElementById('warrant-status');
+    sec.classList.add('show');
+    sec.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+
+    const latestDay = HISTORY[DATES[DATES.length - 1]] || {{}};
+    const entries = Object.entries(latestDay).map(([code, s]) => ({{
+      code, name: s.name, weight: s.weight,
+      call: WARRANTS[code]?.call ?? 0,
+      put:  WARRANTS[code]?.put  ?? 0,
+    }}));
+
+    const withW = entries.filter(e => e.call > 0 || e.put > 0);
+    const noW   = entries.filter(e => e.call === 0 && e.put === 0);
+    withW.sort((a, b) => (b.call + b.put) - (a.call + a.put));
+
+    stat.textContent = withW.length + ' 檔有權證 / ' + entries.length + ' 檔';
+
+    if (Object.keys(WARRANTS).length === 0) {{
+      body.innerHTML = '<p class="wt-err">⚠ 今日尚無權證資料（待每日自動更新後顯示）</p>';
+      return;
+    }}
+
+    const trows = withW.map(e => {{
+      const wlink = 'https://www.twse.com.tw/zh/warrant/search?underlyingCode=' + e.code;
+      const callCell = e.call > 0 ? `<span class="wt-call">認購 ${{e.call}}</span>` : '<span class="wt-none">—</span>';
+      const putCell  = e.put  > 0 ? `<span class="wt-put">認售 ${{e.put}}</span>`  : '<span class="wt-none">—</span>';
+      return `<tr>
+        <td class="code" data-code="${{e.code}}">${{e.code}}</td>
+        <td class="name-cell" data-code="${{e.code}}" data-name="${{e.name}}">${{e.name}}</td>
+        <td class="num">${{e.weight.toFixed(2)}}%</td>
+        <td class="num">${{callCell}}</td>
+        <td class="num">${{putCell}}</td>
+        <td><a class="wt-link" href="${{wlink}}" target="_blank" rel="noopener">查看 →</a></td>
+      </tr>`;
+    }}).join('');
+
+    body.innerHTML = `<table>
+      <thead><tr>
+        <th>代號</th><th>名稱</th><th class="num">持股權重</th>
+        <th class="num">認購</th><th class="num">認售</th><th>連結</th>
+      </tr></thead>
+      <tbody>${{trows || '<tr><td colspan="6" style="padding:14px 20px;color:#475569;font-style:italic">本日無上市認購售權證</td></tr>'}}</tbody>
+    </table>
+    <p style="padding:8px 14px 12px;font-size:0.72rem;color:#475569;">
+      另 ${{noW.length}} 檔目前無上市認購售權證 &nbsp;·&nbsp; 資料來源：台灣證交所開放資料
+    </p>`;
+  }}
+
+  document.getElementById('warrant-btn').addEventListener('click', renderWarrantPanel);
+  document.getElementById('warrant-close').addEventListener('click', () => {{
+    document.getElementById('warrant-sec').classList.remove('show');
+  }});
 
   // ── 代號欄：複製到剪貼簿 ─────────────────────────────────
   const toast = document.getElementById('copy-toast');
@@ -722,7 +817,12 @@ def main():
     if not history:
         print("找不到持股 CSV，跳過。")
         return
-    html = build_html(history)
+    warrants = load_latest_warrants()
+    if warrants:
+        print(f"載入權證資料：{len(warrants)} 檔標的有權證")
+    else:
+        print("找不到權證 JSON，權證欄位將顯示為空（請先執行 fetch_warrants.py）")
+    html = build_html(history, warrants)
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         f.write(html)
     print(f"已產生 {OUTPUT_FILE}（{len(history)} 個日期）")
