@@ -45,12 +45,8 @@ def main():
         with open(outpath, "w", encoding="utf-8") as f:
             json.dump(wmap, f, ensure_ascii=False, separators=(",", ":"))
         print(f"已儲存 {outpath}（{len(wmap)} 檔標的有權證）")
-    except urllib.error.URLError as e:
-        print(f"網路錯誤，權證資料抓取失敗：{e}")
-        raise
     except Exception as e:
-        print(f"權證資料抓取失敗：{e}")
-        raise
+        print(f"⚠ 權證資料抓取失敗（跳過，不影響主流程）：{e}")
 
 
 if __name__ == "__main__":
